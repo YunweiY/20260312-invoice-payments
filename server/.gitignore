@@ -4,13 +4,6 @@ node_modules
 # environment variables
 .env
 
-# prisma generated client
-/generated/prisma
-
-# prisma local db (if using sqlite in dev)
-prisma/dev.db
-prisma/dev.db-journal
-
 # logs
 logs
 *.log
