@@ -1,0 +1,9 @@
+// simplify file path imports in the project
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  }
+}
