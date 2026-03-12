@@ -19,4 +19,15 @@ const getInvoices = async () => {
   return invoices;
 };
 
-export { getInvoices };
+const getInvoiceById = async (id) => {
+  const invoice = await prisma.invoices.findUnique({
+    where: { id },
+    include: {
+      customer: true,
+      payments: true,
+    },
+  });
+  return invoice;
+};
+
+export { getInvoices, getInvoiceById };
