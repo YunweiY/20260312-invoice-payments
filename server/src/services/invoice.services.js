@@ -39,7 +39,7 @@ const getInvoiceByIdService = async (id) => {
 
 const createInvoiceService = async (customer_id, amount, currency, due_at) => {
   // validate whether amount is a positive number
-  if (amount <= 0) {
+  if (typeof amount !== 'number' || amount <= 0) {
     throw BadRequestError('Amount must be a positive number', 'BAD_REQUEST');
   }
 
@@ -72,7 +72,7 @@ const payInvoiceService = async (id, amount) => {
   }
 
   // validate whether the amount is positive
-  if (amount <= 0) {
+  if (typeof amount !== 'number' || amount <= 0) {
     throw BadRequestError('Amount must be a positive number', 'BAD_REQUEST');
   }
 
