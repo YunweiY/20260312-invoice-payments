@@ -9,7 +9,7 @@
     {
       "id": 1,
       "customer_id": 1,
-      "amount": 15000.00,
+      "amount": 15000.0,
       "currency": "USD",
       "issued_at": "2025-01-10T00:00:00Z",
       "due_at": "2025-02-10T00:00:00Z",
@@ -18,7 +18,7 @@
     {
       "id": 2,
       "customer_id": 1,
-      "amount": 8500.00,
+      "amount": 8500.0,
       "currency": "USD",
       "issued_at": "2025-01-25T00:00:00Z",
       "due_at": "2025-02-25T00:00:00Z",
@@ -27,7 +27,7 @@
     {
       "id": 3,
       "customer_id": 2,
-      "amount": 22000.00,
+      "amount": 22000.0,
       "currency": "CAD",
       "issued_at": "2025-02-01T00:00:00Z",
       "due_at": "2025-03-01T00:00:00Z",
@@ -36,7 +36,7 @@
     {
       "id": 4,
       "customer_id": 3,
-      "amount": 5400.00,
+      "amount": 5400.0,
       "currency": "USD",
       "issued_at": "2025-01-15T00:00:00Z",
       "due_at": "2025-02-15T00:00:00Z",
@@ -45,7 +45,7 @@
     {
       "id": 5,
       "customer_id": 3,
-      "amount": 12750.00,
+      "amount": 12750.0,
       "currency": "USD",
       "issued_at": "2025-02-05T00:00:00Z",
       "due_at": "2025-03-05T00:00:00Z",
@@ -54,7 +54,7 @@
     {
       "id": 6,
       "customer_id": 4,
-      "amount": 3200.00,
+      "amount": 3200.0,
       "currency": "CAD",
       "issued_at": "2025-01-20T00:00:00Z",
       "due_at": "2025-02-20T00:00:00Z",
@@ -63,7 +63,7 @@
     {
       "id": 7,
       "customer_id": 2,
-      "amount": 9800.00,
+      "amount": 9800.0,
       "currency": "CAD",
       "issued_at": "2025-02-10T00:00:00Z",
       "due_at": "2025-03-10T00:00:00Z",
@@ -74,37 +74,37 @@
     {
       "id": 1,
       "invoice_id": 1,
-      "amount": 10000.00,
+      "amount": 10000.0,
       "paid_at": "2025-01-20T00:00:00Z"
     },
     {
       "id": 2,
       "invoice_id": 1,
-      "amount": 5000.00,
+      "amount": 5000.0,
       "paid_at": "2025-01-28T00:00:00Z"
     },
     {
       "id": 3,
       "invoice_id": 2,
-      "amount": 3000.00,
+      "amount": 3000.0,
       "paid_at": "2025-02-10T00:00:00Z"
     },
     {
       "id": 4,
       "invoice_id": 4,
-      "amount": 5400.00,
+      "amount": 5400.0,
       "paid_at": "2025-01-30T00:00:00Z"
     },
     {
       "id": 5,
       "invoice_id": 3,
-      "amount": 7000.00,
+      "amount": 7000.0,
       "paid_at": "2025-02-15T00:00:00Z"
     },
     {
       "id": 6,
       "invoice_id": 5,
-      "amount": 5000.00,
+      "amount": 5000.0,
       "paid_at": "2025-02-20T00:00:00Z"
     }
   ]

@@ -1,8 +1,8 @@
 import * as invoiceModel from '../models/invoice.models.js';
 import { NotFoundError } from '../errors/AppError.js';
 
-const getInvoicesService = async () => {
-  const invoices = await invoiceModel.getInvoices();
+const getInvoicesService = async (status, fromDate, toDate) => {
+  const invoices = await invoiceModel.getInvoices(status, fromDate, toDate);
   return invoices;
 };
 
