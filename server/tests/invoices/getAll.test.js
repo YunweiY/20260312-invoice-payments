@@ -154,5 +154,4 @@ describe('GET /api/invoices', () => {
       },
     });
   });
-
 });

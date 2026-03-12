@@ -34,7 +34,10 @@ describe('POST /api/invoices/:id/payments', () => {
   });
 
   it('creates a payment for a pending invoice when amount is valid', async () => {
-    const invoice = await createInvoiceWithState({ status: 'PENDING', amount: 100 });
+    const invoice = await createInvoiceWithState({
+      status: 'PENDING',
+      amount: 100,
+    });
 
     const response = await request(app)
       .post(`/api/invoices/${invoice.id}/payments`)
@@ -53,7 +56,10 @@ describe('POST /api/invoices/:id/payments', () => {
   });
 
   it('marks invoice as PAID when payment equals remaining amount', async () => {
-    const invoice = await createInvoiceWithState({ status: 'PENDING', amount: 120 });
+    const invoice = await createInvoiceWithState({
+      status: 'PENDING',
+      amount: 120,
+    });
 
     await prisma.payments.create({
       data: {
@@ -93,7 +99,10 @@ describe('POST /api/invoices/:id/payments', () => {
   });
 
   it('returns 400 when amount is missing', async () => {
-    const invoice = await createInvoiceWithState({ status: 'PENDING', amount: 100 });
+    const invoice = await createInvoiceWithState({
+      status: 'PENDING',
+      amount: 100,
+    });
 
     const response = await request(app)
       .post(`/api/invoices/${invoice.id}/payments`)
@@ -110,7 +119,10 @@ describe('POST /api/invoices/:id/payments', () => {
   });
 
   it('returns 400 when amount is null', async () => {
-    const invoice = await createInvoiceWithState({ status: 'PENDING', amount: 100 });
+    const invoice = await createInvoiceWithState({
+      status: 'PENDING',
+      amount: 100,
+    });
 
     const response = await request(app)
       .post(`/api/invoices/${invoice.id}/payments`)
@@ -142,7 +154,10 @@ describe('POST /api/invoices/:id/payments', () => {
   });
 
   it('returns 400 when amount is not positive', async () => {
-    const invoice = await createInvoiceWithState({ status: 'PENDING', amount: 100 });
+    const invoice = await createInvoiceWithState({
+      status: 'PENDING',
+      amount: 100,
+    });
 
     const response = await request(app)
       .post(`/api/invoices/${invoice.id}/payments`)
@@ -159,7 +174,10 @@ describe('POST /api/invoices/:id/payments', () => {
   });
 
   it('returns 400 when invoice is not in PENDING status', async () => {
-    const invoice = await createInvoiceWithState({ status: 'DRAFT', amount: 100 });
+    const invoice = await createInvoiceWithState({
+      status: 'DRAFT',
+      amount: 100,
+    });
 
     const response = await request(app)
       .post(`/api/invoices/${invoice.id}/payments`)
@@ -176,7 +194,10 @@ describe('POST /api/invoices/:id/payments', () => {
   });
 
   it('returns 400 when amount is greater than remaining unpaid amount', async () => {
-    const invoice = await createInvoiceWithState({ status: 'PENDING', amount: 100 });
+    const invoice = await createInvoiceWithState({
+      status: 'PENDING',
+      amount: 100,
+    });
 
     await prisma.payments.create({
       data: {

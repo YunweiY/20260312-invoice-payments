@@ -1,20 +1,15 @@
 import validator from 'validator';
 import * as invoiceService from '../services/invoice.services.js';
 import { BadRequestError } from '../errors/AppError.js';
+import { validateInvoiceStatus } from '../utils/validateInvoiceStatus.js';
 
 const getInvoicesController = async (req, res, next) => {
   try {
     const { status, from, to } = req.query;
 
     // validate status
-    if (
-      status &&
-      status !== 'PENDING' &&
-      status !== 'PAID' &&
-      status !== 'VOID' &&
-      status !== 'DRAFT'
-    ) {
-      throw BadRequestError('Invalid status', 'BAD_REQUEST');
+    if (status) {
+      validateInvoiceStatus(status);
     }
 
     // validate date range
