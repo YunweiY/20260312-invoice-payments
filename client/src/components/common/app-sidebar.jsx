@@ -5,7 +5,8 @@ import {
   SidebarMenuButton,
   SidebarHeader,
 } from '@/components/ui/sidebar';
-import { Users, FileText, CreditCard } from 'lucide-react';
+import { Users, FileText, CreditCard, Home } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 export function AppSidebar() {
   return (
@@ -15,23 +16,37 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent className="gap-2">
-        <SidebarMenuButton>
-          <SidebarGroupLabel className="text-md font-medium">
-            <FileText className="h-4 w-4 mr-2" />
-            <span className="text-md font-medium">Invoices</span>
-          </SidebarGroupLabel>
+        <SidebarMenuButton asChild>
+          <Link to="/">
+            <SidebarGroupLabel className="text-md font-medium">
+              <Home className="h-4 w-4 mr-2" />
+              <span className="text-md font-medium">Home</span>
+            </SidebarGroupLabel>
+          </Link>
         </SidebarMenuButton>
-        <SidebarMenuButton>
-          <SidebarGroupLabel className="text-md font-medium">
-            <Users className="h-4 w-4 mr-2" />
-            <span className="text-md font-medium">Customers</span>
-          </SidebarGroupLabel>
+        <SidebarMenuButton asChild>
+          <Link to="/invoices">
+            <SidebarGroupLabel className="text-md font-medium">
+              <FileText className="h-4 w-4 mr-2" />
+              <span className="text-md font-medium">Invoices</span>
+            </SidebarGroupLabel>
+          </Link>
         </SidebarMenuButton>
-        <SidebarMenuButton>
-          <SidebarGroupLabel className="text-md font-medium">
-            <CreditCard className="h-4 w-4 mr-2" />
-            <span className="text-md font-medium">Payments</span>
-          </SidebarGroupLabel>
+        <SidebarMenuButton asChild>
+          <Link to="/customers">
+            <SidebarGroupLabel className="text-md font-medium">
+              <Users className="h-4 w-4 mr-2" />
+              <span className="text-md font-medium">Customers</span>
+            </SidebarGroupLabel>
+          </Link>
+        </SidebarMenuButton>
+        <SidebarMenuButton asChild>
+          <Link to="/payments">
+            <SidebarGroupLabel className="text-md font-medium">
+              <CreditCard className="h-4 w-4 mr-2" />
+              <span className="text-md font-medium">Payments</span>
+            </SidebarGroupLabel>
+          </Link>
         </SidebarMenuButton>
       </SidebarContent>
     </Sidebar>

@@ -17,7 +17,7 @@ export function PageHeader({
 
       {enableButton && (
         <div className="flex items-center gap-2">
-          <Button onClick={buttonOnClick} size="lg">
+          <Button onClick={buttonOnClick}>
             {buttonIcon && <span>{buttonIcon}</span>}
             {buttonText}
           </Button>

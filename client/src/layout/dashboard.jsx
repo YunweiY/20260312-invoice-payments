@@ -4,6 +4,7 @@ import { PageHeader } from '@/components/common/page-header';
 
 export default function DashboardLayout({
   title,
+  enableButton = false,
   buttonText,
   buttonIcon,
   buttonOnClick,
@@ -12,10 +13,10 @@ export default function DashboardLayout({
   return (
     <SidebarProvider>
       <AppSidebar />
-      <main className="flex-1">
+      <main className="flex flex-1 flex-col">
         <PageHeader
           title={title}
-          enableButton={true}
+          enableButton={enableButton}
           buttonIcon={buttonIcon}
           buttonText={buttonText}
           buttonOnClick={buttonOnClick}
