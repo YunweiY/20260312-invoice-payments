@@ -217,7 +217,7 @@ describe('POST /api/invoices/:id/payments', () => {
       error: {
         code: 'BAD_REQUEST',
         message:
-          'Amount is greater than the remaining unpaid amount, remaining amount is $70',
+          'Amount is greater than the remaining unpaid amount, remaining amount is 70',
       },
     });
   });

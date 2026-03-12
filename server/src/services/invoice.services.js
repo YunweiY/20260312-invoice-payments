@@ -65,54 +65,56 @@ const createInvoiceService = async (customer_id, amount, currency, due_at) => {
 };
 
 const payInvoiceService = async (id, amount) => {
-  // validate whether the invoice exists
-  const invoice = await invoiceModel.getInvoiceById(id);
-  if (!invoice) {
-    throw NotFoundError('Invoice not found', 'NOT_FOUND');
-  }
-
-  // validate whether the amount is positive
   if (typeof amount !== 'number' || amount <= 0) {
     throw BadRequestError('Amount must be a positive number', 'BAD_REQUEST');
   }
 
-  // validate whether the invoice is PENDING, a DRAFT/PAID/VOID invoice cannot be paid
-  if (invoice.status !== 'PENDING') {
-    throw BadRequestError(
-      'Invoice is not pending, current status is ' + invoice.status,
-      'BAD_REQUEST'
-    );
-  }
+  // if two requests are sent at the same time, the second request should be blocked before the
+  // first request is completed
+  // we should apply a lock to the invoice to prevent concurrent requests to pay the same invoice
+  return await prisma.$transaction(async (tx) => {
+    // lock the invoice
+    const invoice =
+      await tx.$queryRaw`SELECT * FROM "Invoices" WHERE id = ${id} FOR UPDATE`;
+    if (invoice.length === 0) {
+      throw NotFoundError('Invoice not found', 'NOT_FOUND');
+    }
 
-  // validate whether the amount is less than or equal to the remaining unpaid amount
-  const totalPaid = invoice.payments.reduce(
-    (acc, payment) => acc + payment.amount.toNumber(),
-    0
-  );
-  const remainingAmount = invoice.amount - totalPaid;
-  console.log('remainingAmount', remainingAmount);
-  console.log('amount', amount);
-  console.log('totalPaid', totalPaid);
-  // if the amount is greater than the remaining unpaid amount, throw an error
-  if (amount > remainingAmount) {
-    throw BadRequestError(
-      'Amount is greater than the remaining unpaid amount, remaining amount is $' +
-        remainingAmount,
-      'BAD_REQUEST'
+    // validate the status of the invoice
+    if (invoice[0].status !== 'PENDING') {
+      throw BadRequestError(
+        `Invoice is not pending, current status is ${invoice[0].status}`,
+        'BAD_REQUEST'
+      );
+    }
+
+    // get all payments for the invoice
+    const payments = await paymentModel.getPayments(id, tx);
+
+    // calculate the total paid amount
+    const totalPaid = payments.reduce(
+      (acc, payment) => acc + Number(payment.amount),
+      0
     );
-  }
-  // if the amount is equal to the remaining unpaid amount, set the invoice status to PAID
-  // use transaction to update the invoice and create the payment
-  else if (amount === remainingAmount) {
-    return await prisma.$transaction(async (tx) => {
+    const remainingAmount = Number(invoice[0].amount) - totalPaid;
+
+    if (amount > remainingAmount) {
+      // if the amount is greater than the remaining unpaid amount, throw an error
+      throw BadRequestError(
+        `Amount is greater than the remaining unpaid amount, remaining amount is ${remainingAmount}`,
+        'BAD_REQUEST'
+      );
+    } else if (Number(amount) === remainingAmount) {
+      // if the amount is equal to the remaining unpaid amount, update the invoice status to PAID and create a payment
       await invoiceModel.updateInvoice(id, { status: 'PAID' }, tx);
-      return await paymentModel.createPayment(id, amount, tx);
-    });
-  }
-  // if the amount is less than the remaining unpaid amount, create a new payment
-  else {
-    return await paymentModel.createPayment(id, amount);
-  }
+      const payment = await paymentModel.createPayment(id, amount, tx);
+      return payment;
+    } else {
+      // if the amount is less than the remaining unpaid amount, only create the payment
+      const payment = await paymentModel.createPayment(id, amount, tx);
+      return payment;
+    }
+  });
 };
 
 export {

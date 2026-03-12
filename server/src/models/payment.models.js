@@ -1,7 +1,13 @@
 import prisma from '../config/prisma.js';
 
-const getPayments = async () => {
-  const payments = await prisma.payments.findMany();
+const getPayments = async (invoice_id, tx = prisma) => {
+  let where = {};
+  if (invoice_id) {
+    where.invoice_id = invoice_id;
+  }
+  const payments = await tx.payments.findMany({
+    where,
+  });
   return payments;
 };
 
