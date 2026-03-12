@@ -63,4 +63,12 @@ const createInvoice = async (customer_id, amount, currency, due_at) => {
   return invoice;
 };
 
-export { getInvoices, getInvoiceById, createInvoice };
+const updateInvoice = async (id, data, tx = prisma) => {
+  const invoice = await tx.invoices.update({
+    where: { id },
+    data,
+  });
+  return invoice;
+};
+
+export { getInvoices, getInvoiceById, createInvoice, updateInvoice };

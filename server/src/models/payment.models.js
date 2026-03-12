@@ -5,4 +5,11 @@ const getPayments = async () => {
   return payments;
 };
 
-export { getPayments };
+const createPayment = async (invoice_id, amount, tx = prisma) => {
+  const payment = await tx.payments.create({
+    data: { invoice_id, amount, paid_at: new Date() },
+  });
+  return payment;
+};
+
+export { getPayments, createPayment };

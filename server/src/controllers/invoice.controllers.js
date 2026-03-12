@@ -123,8 +123,38 @@ const createInvoiceController = async (req, res, next) => {
   }
 };
 
+const payInvoiceController = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { amount } = req.body ?? {};
+
+    // validate invoice id
+    if (!id) {
+      throw BadRequestError('Invoice ID is required', 'BAD_REQUEST');
+    }
+    if (!validator.isUUID(id)) {
+      throw BadRequestError('Invoice ID must be a valid UUID', 'BAD_REQUEST');
+    }
+
+    // validate amount
+    if (amount === undefined || amount === null) {
+      throw BadRequestError('Amount is required', 'BAD_REQUEST');
+    }
+
+    const payment = await invoiceService.payInvoiceService(id, amount);
+
+    res.status(200).json({
+      status: 'success',
+      data: payment,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export {
   getInvoicesController,
   getInvoiceByIdController,
   createInvoiceController,
+  payInvoiceController,
 };
