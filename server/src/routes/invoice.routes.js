@@ -5,5 +5,6 @@ const router = express.Router();
 
 router.get('/', invoiceController.getInvoicesController);
 router.get('/:id', invoiceController.getInvoiceByIdController);
+router.post('/', invoiceController.createInvoiceController);
 
 export default router;

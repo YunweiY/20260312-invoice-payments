@@ -49,4 +49,18 @@ const getInvoiceById = async (id) => {
   return invoice;
 };
 
-export { getInvoices, getInvoiceById };
+const createInvoice = async (customer_id, amount, currency, due_at) => {
+  const invoice = await prisma.invoices.create({
+    data: {
+      customer_id,
+      amount,
+      currency,
+      issued_at: new Date(),
+      due_at,
+      status: 'DRAFT',
+    },
+  });
+  return invoice;
+};
+
+export { getInvoices, getInvoiceById, createInvoice };

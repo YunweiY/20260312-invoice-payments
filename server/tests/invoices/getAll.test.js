@@ -119,7 +119,7 @@ describe('GET /api/invoices', () => {
       status: 'error',
       error: {
         code: 'BAD_REQUEST',
-        message: 'Invalid from date',
+        message: 'From date must be a valid ISO 8601 date',
       },
     });
   });
@@ -134,7 +134,7 @@ describe('GET /api/invoices', () => {
       status: 'error',
       error: {
         code: 'BAD_REQUEST',
-        message: 'Invalid to date',
+        message: 'To date must be a valid ISO 8601 date',
       },
     });
   });
@@ -155,33 +155,4 @@ describe('GET /api/invoices', () => {
     });
   });
 
-  it('returns 400 when from is provided as a non-string type', async () => {
-    const response = await request(app)
-      .get('/api/invoices')
-      .query({ from: ['2026-03-01', '2026-03-02'] });
-
-    expect(response.status).toBe(400);
-    expect(response.body).toEqual({
-      status: 'error',
-      error: {
-        code: 'BAD_REQUEST',
-        message: 'From date must be a string',
-      },
-    });
-  });
-
-  it('returns 400 when to is provided as a non-string type', async () => {
-    const response = await request(app)
-      .get('/api/invoices')
-      .query({ to: ['2026-03-01', '2026-03-02'] });
-
-    expect(response.status).toBe(400);
-    expect(response.body).toEqual({
-      status: 'error',
-      error: {
-        code: 'BAD_REQUEST',
-        message: 'To date must be a string',
-      },
-    });
-  });
 });

@@ -48,7 +48,7 @@ describe('GET /api/invoices/:id', () => {
       status: 'error',
       error: {
         code: 'BAD_REQUEST',
-        message: 'Invoice ID must be 36 characters long',
+        message: 'Invoice ID must be a valid UUID',
       },
     });
   });

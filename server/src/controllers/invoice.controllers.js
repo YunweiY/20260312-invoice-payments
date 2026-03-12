@@ -1,3 +1,4 @@
+import validator from 'validator';
 import * as invoiceService from '../services/invoice.services.js';
 import { BadRequestError } from '../errors/AppError.js';
 
@@ -17,36 +18,21 @@ const getInvoicesController = async (req, res, next) => {
     }
 
     // validate date range
-    let fromDate;
-    let toDate;
-
-    if (from && typeof from !== 'string') {
-      throw BadRequestError('From date must be a string', 'BAD_REQUEST');
-    } else if (from) {
-      fromDate = new Date(from);
-      if (isNaN(fromDate)) {
-        throw BadRequestError('Invalid from date', 'BAD_REQUEST');
-      }
+    if (from && !validator.isISO8601(from)) {
+      throw BadRequestError(
+        'From date must be a valid ISO 8601 date',
+        'BAD_REQUEST'
+      );
     }
 
-    if (to && typeof to !== 'string') {
-      throw BadRequestError('To date must be a string', 'BAD_REQUEST');
-    } else if (to) {
-      toDate = new Date(to);
-      if (isNaN(toDate)) {
-        throw BadRequestError('Invalid to date', 'BAD_REQUEST');
-      }
+    if (to && !validator.isISO8601(to)) {
+      throw BadRequestError(
+        'To date must be a valid ISO 8601 date',
+        'BAD_REQUEST'
+      );
     }
 
-    if (fromDate && toDate && fromDate > toDate) {
-      throw BadRequestError('From date must be before to date', 'BAD_REQUEST');
-    }
-
-    const invoices = await invoiceService.getInvoicesService(
-      status,
-      fromDate,
-      toDate
-    );
+    const invoices = await invoiceService.getInvoicesService(status, from, to);
 
     res.status(200).json({
       status: 'success',
@@ -65,14 +51,8 @@ const getInvoiceByIdController = async (req, res, next) => {
     if (!id) {
       throw BadRequestError('Invoice ID is required', 'BAD_REQUEST');
     }
-    if (typeof id !== 'string') {
-      throw BadRequestError('Invoice ID must be a string', 'BAD_REQUEST');
-    }
-    if (id.length !== 36) {
-      throw BadRequestError(
-        'Invoice ID must be 36 characters long',
-        'BAD_REQUEST'
-      );
+    if (!validator.isUUID(id)) {
+      throw BadRequestError('Invoice ID must be a valid UUID', 'BAD_REQUEST');
     }
 
     const invoice = await invoiceService.getInvoiceByIdService(id);
@@ -86,4 +66,65 @@ const getInvoiceByIdController = async (req, res, next) => {
   }
 };
 
-export { getInvoicesController, getInvoiceByIdController };
+const createInvoiceController = async (req, res, next) => {
+  try {
+    // issued_at is set to the current date and time by default
+    const { customer_id, amount, currency, due_at } = req.body ?? {};
+
+    // validate whether all required fields are provided
+    // should not use !amount because 0 will be considered as falsy
+    if (
+      !customer_id ||
+      amount === undefined ||
+      amount === null ||
+      !currency ||
+      !due_at
+    ) {
+      throw BadRequestError(
+        'Customer ID, amount, currency, and due date are required',
+        'BAD_REQUEST'
+      );
+    }
+
+    // validate whether customer_id is a valid UUID
+    if (typeof customer_id !== 'string' || !validator.isUUID(customer_id)) {
+      throw BadRequestError('Invalid customer ID', 'BAD_REQUEST');
+    }
+
+    // validate whether currency is a valid currency code
+    if (!validator.isISO4217(currency)) {
+      throw BadRequestError(
+        'Currency must be a valid ISO 4217 currency code',
+        'BAD_REQUEST'
+      );
+    }
+
+    // validate whether due_at is a valid ISO 8601 date
+    if (!validator.isISO8601(due_at)) {
+      throw BadRequestError(
+        'Due date must be a valid ISO 8601 date',
+        'BAD_REQUEST'
+      );
+    }
+
+    const invoice = await invoiceService.createInvoiceService(
+      customer_id,
+      amount,
+      currency,
+      due_at
+    );
+
+    res.status(201).json({
+      status: 'success',
+      data: invoice,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export {
+  getInvoicesController,
+  getInvoiceByIdController,
+  createInvoiceController,
+};
