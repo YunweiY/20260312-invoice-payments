@@ -1,11 +1,15 @@
 import prisma from '../config/prisma.js';
 
-const getInvoices = async (status, fromDate, toDate) => {
+const getInvoices = async (customer_id, status, fromDate, toDate) => {
   // build conditional filter object for status and issued_at date range
   const where = {};
 
   if (status) {
     where.status = status;
+  }
+
+  if (customer_id) {
+    where.customer_id = customer_id;
   }
 
   if (fromDate || toDate) {

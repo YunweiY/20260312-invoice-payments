@@ -20,7 +20,12 @@ const getInvoicesService = async (status, from, to) => {
     throw BadRequestError('From date must be before to date', 'BAD_REQUEST');
   }
 
-  const invoices = await invoiceModel.getInvoices(status, fromDate, toDate);
+  const invoices = await invoiceModel.getInvoices(
+    null,
+    status,
+    fromDate,
+    toDate
+  );
   return invoices;
 };
 
