@@ -249,8 +249,12 @@ describe('POST /api/invoices/:id/payments', () => {
     });
 
     const [res1, res2] = await Promise.all([
-      request(app).post(`/api/invoices/${invoice.id}/payments`).send({ amount: '50' }),
-      request(app).post(`/api/invoices/${invoice.id}/payments`).send({ amount: '50' }),
+      request(app)
+        .post(`/api/invoices/${invoice.id}/payments`)
+        .send({ amount: '50' }),
+      request(app)
+        .post(`/api/invoices/${invoice.id}/payments`)
+        .send({ amount: '50' }),
     ]);
 
     expect([res1.status, res2.status].sort()).toEqual([200, 200]);
@@ -282,8 +286,12 @@ describe('POST /api/invoices/:id/payments', () => {
     });
 
     const [res1, res2] = await Promise.all([
-      request(app).post(`/api/invoices/${invoice.id}/payments`).send({ amount: '70' }),
-      request(app).post(`/api/invoices/${invoice.id}/payments`).send({ amount: '40' }),
+      request(app)
+        .post(`/api/invoices/${invoice.id}/payments`)
+        .send({ amount: '70' }),
+      request(app)
+        .post(`/api/invoices/${invoice.id}/payments`)
+        .send({ amount: '40' }),
     ]);
 
     const statuses = [res1.status, res2.status].sort();

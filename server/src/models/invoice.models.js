@@ -1,6 +1,13 @@
 import prisma from '../config/prisma.js';
 
-const getInvoices = async (customer_id, status, fromDate, toDate) => {
+const getInvoices = async (
+  customer_id,
+  status,
+  fromDate,
+  toDate,
+  page,
+  limit
+) => {
   // build conditional filter object for status and issued_at date range
   const where = {};
 
@@ -42,8 +49,21 @@ const getInvoices = async (customer_id, status, fromDate, toDate) => {
       },
     },
     where,
+    skip: (page - 1) * limit,
+    take: limit,
+    orderBy: {
+      issued_at: 'desc',
+    },
   });
-  return invoices;
+
+  const total = await prisma.invoices.count({
+    where,
+  });
+
+  return {
+    invoices,
+    total,
+  };
 };
 
 const getInvoiceById = async (id) => {

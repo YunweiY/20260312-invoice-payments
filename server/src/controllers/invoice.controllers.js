@@ -3,10 +3,12 @@ import * as invoiceService from '../services/invoice.services.js';
 import { BadRequestError } from '../errors/AppError.js';
 import { validateInvoiceStatus } from '../utils/validateInvoiceStatus.js';
 import { isValidAmountString } from '../utils/validateAmountString.js';
+import parsePagination from '../utils/parsePagination.js';
 
 const getInvoicesController = async (req, res, next) => {
   try {
     const { status, from, to } = req.query;
+    const { page, limit } = parsePagination(req.query);
 
     // validate status
     if (status) {
@@ -28,11 +30,18 @@ const getInvoicesController = async (req, res, next) => {
       );
     }
 
-    const invoices = await invoiceService.getInvoicesService(status, from, to);
+    const { invoices, total, totalPages } =
+      await invoiceService.getInvoicesService(status, from, to, page, limit);
 
     res.status(200).json({
       status: 'success',
       data: invoices,
+      meta: {
+        total,
+        totalPages,
+        currentPage: page,
+        limit,
+      },
     });
   } catch (error) {
     next(error);

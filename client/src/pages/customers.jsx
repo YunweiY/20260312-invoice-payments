@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AlertTriangleIcon } from 'lucide-react';
 import DashboardLayout from '@/layout/dashboard';
 import { getAllCustomers } from '@/api/customers.api';
 import { getCustomerInvoices } from '@/api/customers.api';
+import { updateInvoiceStatus } from '@/api/invoices.api';
 import { Spinner } from '@/components/ui/spinner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -16,7 +17,6 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { SimpleSheet } from '@/components/common/simple-sheet';
-import { statusTag } from '@/components/invoices/status-tag';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -27,7 +27,18 @@ import {
 } from '@/components/ui/select';
 import { DatePicker } from '@/components/common/date-picker';
 import { CopyText } from '@/components/common/copy-text';
-import { formatAmount } from '@/lib/utils';
+import { InvoiceTable } from '@/components/invoices/invoice-table';
+import { useAutoPageSize } from '@/hooks/useAutoPageSize';
+import { CompactPagination } from '@/components/common/compact-pagination';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+} from '@/components/ui/dropdown-menu';
+import { getInvoiceActionButtonTypes } from '@/components/invoices/invoice-action-buttons';
+import { toast } from 'sonner';
 
 export default function CustomersPage() {
   const [customers, setCustomers] = useState([]);
@@ -36,6 +47,7 @@ export default function CustomersPage() {
 
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [invoices, setInvoices] = useState([]);
+  const [isUpdatingInvoiceStatus, setIsUpdatingInvoiceStatus] = useState(false);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [isSheetLoading, setIsSheetLoading] = useState(true);
   const [sheetError, setSheetError] = useState(null);
@@ -43,6 +55,23 @@ export default function CustomersPage() {
   const [status, setStatus] = useState(null);
   const [fromDate, setFromDate] = useState(null);
   const [toDate, setToDate] = useState(null);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(0);
+  const scrollAreaRef = useRef(null);
+  const limit = useAutoPageSize({
+    containerRef: scrollAreaRef,
+    rowHeight: 48,
+    initialLimit: 15,
+  });
+
+  const [sheetPage, setSheetPage] = useState(1);
+  const [sheetTotalPages, setSheetTotalPages] = useState(0);
+  const sheetScrollAreaRef = useRef(null);
+  const sheetLimit = useAutoPageSize({
+    containerRef: sheetScrollAreaRef,
+    rowHeight: 48, // h-12
+    initialLimit: 10,
+  });
 
   async function loadInvoices(filters = {}) {
     const nextStatus = filters.status !== undefined ? filters.status : status;
@@ -52,13 +81,16 @@ export default function CustomersPage() {
     setIsSheetLoading(true);
     setSheetError(null);
     try {
-      const data = await getCustomerInvoices(
+      const { invoices, meta } = await getCustomerInvoices(
         selectedCustomer.id,
         nextStatus,
         nextFromDate,
-        nextToDate
+        nextToDate,
+        sheetPage,
+        sheetLimit
       );
-      setInvoices(data);
+      setInvoices(invoices);
+      setSheetTotalPages(meta.totalPages);
     } catch (error) {
       setSheetError(error);
     } finally {
@@ -73,13 +105,21 @@ export default function CustomersPage() {
     loadInvoices({ status: null, fromDate: null, toDate: null });
   }
 
-  async function loadInvoicesByCustomerId(id) {
+  async function loadInvoicesByCustomerId(id, pageOverride = sheetPage) {
     setIsSheetOpen(true);
     setIsSheetLoading(true);
     setSheetError(null);
     try {
-      const data = await getCustomerInvoices(id, status, fromDate, toDate);
-      setInvoices(data);
+      const { invoices, meta } = await getCustomerInvoices(
+        id,
+        status,
+        fromDate,
+        toDate,
+        pageOverride,
+        sheetLimit
+      );
+      setInvoices(invoices);
+      setSheetTotalPages(meta.totalPages);
     } catch (error) {
       setSheetError(error);
     } finally {
@@ -88,9 +128,10 @@ export default function CustomersPage() {
   }
 
   async function loadCustomers() {
-    getAllCustomers()
-      .then((data) => {
-        setCustomers(data);
+    getAllCustomers(page, limit)
+      .then(({ customers, meta }) => {
+        setCustomers(customers);
+        setTotalPages(meta.totalPages);
         setError(null);
       })
       .catch((error) => {
@@ -103,7 +144,22 @@ export default function CustomersPage() {
 
   useEffect(() => {
     loadCustomers();
-  }, []);
+  }, [page, limit]);
+
+  async function handleUpdateInvoiceStatus(id, targetStatus) {
+    if (!selectedCustomer?.id) return;
+
+    try {
+      setIsUpdatingInvoiceStatus(true);
+      await updateInvoiceStatus(id, targetStatus);
+      toast.success(`Invoice status updated to ${targetStatus}`);
+      await loadInvoicesByCustomerId(selectedCustomer.id);
+    } catch (error) {
+      toast.error(error?.response?.data?.error?.message || error.message);
+    } finally {
+      setIsUpdatingInvoiceStatus(false);
+    }
+  }
 
   return (
     <DashboardLayout title="Customers" enableButton={false}>
@@ -133,33 +189,50 @@ export default function CustomersPage() {
       ) : (
         <div className="flex h-full min-h-0 p-4">
           <Card className="flex h-full min-h-0 flex-1 flex-col p-2">
-            <ScrollArea className="h-full w-full">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Customer ID</TableHead>
-                    <TableHead>Name</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {customers.map((customer) => (
-                    <TableRow
-                      key={customer.id}
-                      onClick={() => {
-                        setSelectedCustomer(customer);
-                        loadInvoicesByCustomerId(customer.id);
-                      }}
-                    >
-                      <TableCell>
-                        <CopyText text={customer.id} />
-                      </TableCell>
-                      <TableCell>{customer.name}</TableCell>
+            <div ref={scrollAreaRef} className="min-h-0 flex-1">
+              <ScrollArea className="size-full">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Customer ID</TableHead>
+                      <TableHead>Name</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-              <ScrollBar orientation="horizontal" />
-            </ScrollArea>
+                  </TableHeader>
+                  {customers.length > 0 && (
+                    <TableBody>
+                      {customers.map((customer) => (
+                        <TableRow
+                          className="h-12"
+                          key={customer.id}
+                          onClick={() => {
+                            setSelectedCustomer(customer);
+                            loadInvoicesByCustomerId(customer.id);
+                          }}
+                        >
+                          <TableCell>
+                            <CopyText text={customer.id} />
+                          </TableCell>
+                          <TableCell>{customer.name}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  )}
+                </Table>
+                {customers.length === 0 && (
+                  <p className="py-6 text-center text-gray-600 text-lg font-medium">
+                    No customers found
+                  </p>
+                )}
+                <ScrollBar orientation="horizontal" />
+              </ScrollArea>
+            </div>
+            <div className="border-t p-2">
+              <CompactPagination
+                page={page}
+                totalPages={totalPages}
+                onPageChange={setPage}
+              />
+            </div>
           </Card>
         </div>
       )}
@@ -206,7 +279,7 @@ export default function CustomersPage() {
               <p className="font-medium text-left">Name:</p>
               <p>{selectedCustomer?.name}</p>
             </div>
-            <div className="flex min-h-0 flex-1 flex-col gap-2 rounded-md border p-4">
+            <div className="flex min-h-0 flex-col gap-2 rounded-md border p-4">
               {/* Filters */}
               <div className="flex flex-wrap items-end gap-2">
                 {/* filter by status */}
@@ -255,49 +328,73 @@ export default function CustomersPage() {
                 </div>
               </div>
               {/* Invoice table */}
-              <div className="flex min-h-0 flex-1 flex-col">
-                {invoices.length > 0 && (
-                  <ScrollArea className="min-h-0 flex-1 w-full rounded-md border">
-                    <Table className="border">
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Invoice ID</TableHead>
-                          <TableHead>Amount</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Issued At</TableHead>
-                          <TableHead>Due At</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {invoices.map((invoice) => (
-                          <TableRow key={invoice.id}>
-                            <TableCell>
-                              <CopyText text={invoice.id} />
-                            </TableCell>
-                            <TableCell>
-                              {formatAmount(invoice.amount)} {invoice.currency}
-                            </TableCell>
-                            <TableCell>{statusTag(invoice.status)}</TableCell>
-                            <TableCell>
-                              {new Date(invoice.issued_at).toLocaleDateString()}
-                            </TableCell>
-                            <TableCell>
-                              {new Date(invoice.due_at).toLocaleDateString()}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                    <ScrollBar orientation="vertical" />
+              <Card className="flex min-h-0 flex-col p-2">
+                <div ref={sheetScrollAreaRef} className="min-h-0">
+                  <ScrollArea className="size-full">
+                    <InvoiceTable
+                      invoices={invoices}
+                      showActions
+                      renderActions={(invoice) => {
+                        const buttons = getInvoiceActionButtonTypes(
+                          invoice,
+                          handleUpdateInvoiceStatus
+                        );
+                        return buttons.length > 0 ? (
+                          isUpdatingInvoiceStatus ? (
+                            <Button
+                              className="w-full"
+                              variant="outline"
+                              disabled
+                            >
+                              <Spinner className="size-4" />
+                              Updating...
+                            </Button>
+                          ) : (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button className="w-full" variant="outline">
+                                  Update
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuGroup>
+                                  {buttons.map((button) => (
+                                    <DropdownMenuItem
+                                      key={button.type}
+                                      variant={button.variant}
+                                      onSelect={button.onClick}
+                                      disabled={isUpdatingInvoiceStatus}
+                                    >
+                                      {button.icon}
+                                      {button.label}
+                                    </DropdownMenuItem>
+                                  ))}
+                                </DropdownMenuGroup>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )
+                        ) : null;
+                      }}
+                    />
+                    {invoices.length === 0 && (
+                      <p className="py-6 text-center text-gray-600 text-lg font-medium">
+                        No invoices found
+                      </p>
+                    )}
                     <ScrollBar orientation="horizontal" />
                   </ScrollArea>
-                )}
-                {invoices.length === 0 && (
-                  <p className="text-gray-600 text-center text-lg font-medium">
-                    No invoices found
-                  </p>
-                )}
-              </div>
+                </div>
+                <div className="border-t p-2">
+                  <CompactPagination
+                    page={sheetPage}
+                    totalPages={sheetTotalPages}
+                    onPageChange={(nextPage) => {
+                      setSheetPage(nextPage);
+                      loadInvoicesByCustomerId(selectedCustomer.id, nextPage);
+                    }}
+                  />
+                </div>
+              </Card>
             </div>
           </div>
         )}

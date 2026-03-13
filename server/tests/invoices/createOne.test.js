@@ -16,6 +16,14 @@ const getValidCustomerId = async () => {
   expect(response.body.status).toBe('success');
   expect(Array.isArray(response.body.data)).toBe(true);
   expect(response.body.data.length).toBeGreaterThan(0);
+  expect(response.body.meta).toEqual(
+    expect.objectContaining({
+      total: expect.any(Number),
+      totalPages: expect.any(Number),
+      currentPage: 1,
+      limit: 10,
+    })
+  );
 
   return response.body.data[0].id;
 };

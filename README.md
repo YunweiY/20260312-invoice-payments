@@ -18,7 +18,7 @@ It models a realistic payment flow where invoices can be paid in multiple instal
 
 ### What this project does
 
-- Browse customers, invoices, and payments in table views, and filter invoices by status and issue date.
+- Browse customers, invoices, and payments in table views with pagination, and filter invoices by status and issue date.
 - View detailed customer and invoice records, along with their related entries.
 - Create new invoices.
 - Pay invoices with full or partial payments.
@@ -28,6 +28,15 @@ It models a realistic payment flow where invoices can be paid in multiple instal
 - **Frontend:** React + Vite, React Router, Axios, Tailwind CSS (with shadcn/ui components).
 - **Backend:** Node.js + Express, Prisma ORM, PostgreSQL.
 - **Quality:** ESLint + Prettier; backend tests powered by Jest + Supertest.
+
+### API documentation notes
+
+Swagger docs are generated from OpenAPI annotations in route files and mounted at `/api/docs`. To keep the docs maintainable, schemas are split by domain under `server/src/docs/schemas`:
+
+- `common.schemas.js`: shared response envelopes (`SuccessResponse`, `ErrorResponse`)
+- `customer.schemas.js`: customer and customer-invoice response schemas
+- `invoice.schemas.js`: invoice list/detail/request schemas (including `_count.payments` and `remaining_amount`)
+- `payment.schemas.js`: payment list response schemas
 
 ## 2. Setup Guide
 
@@ -90,6 +99,7 @@ npm run dev
 ### 5) Verify the setup
 
 - Backend health check: [http://localhost:5000/api/health](http://localhost:5000/api/health)
+- API docs (Swagger UI): [http://localhost:5000/api/docs](http://localhost:5000/api/docs)
 - Frontend app: the URL shown by Vite (usually [http://localhost:5173](http://localhost:5173))
 
 ## 3. Project Structure
@@ -272,11 +282,17 @@ To avoid race conditions (for example, two payments arriving at the same time or
 
 This design ensures only one transaction can mutate a target invoice at a time, so invariant checks (status, remaining amount, overpayment prevention) are evaluated against a consistent state before writes are committed.
 
-### 6) Currency precision strategy (2-decimal contract)
+### 6) Modular OpenAPI documentation design
+
+API documentation is implemented with `swagger-jsdoc` + `swagger-ui-express` and exposed at `/api/docs`.
+Instead of keeping all schemas in one file, OpenAPI schemas are organized by domain (`common`, `customer`, `invoice`, `payment`) and composed in `server/src/docs/schemas/index.js`.
+This keeps route annotations concise, makes contracts easier to evolve, and ensures non-trivial response fields (for example, `_count.payments` in invoice list and `remaining_amount` in invoice detail) are explicitly documented for frontend/backend alignment.
+
+### 7) Currency precision strategy (2-decimal contract)
 
 Amounts are validated as decimal strings (up to 2 decimal places) at API boundaries, while backend calculations use `Prisma.Decimal` for comparisons and arithmetic to avoid floating-point precision loss. This design mirrors real-world currency handling and prevents subtle overpay/comparison bugs caused by binary floating-point math.
 
-### 7) Single-currency payment scope
+### 8) Single-currency payment scope
 
 The current flow assumes invoice currency and payment currency are the same. This keeps the first version simpler and reduces complexity in settlement and reconciliation logic.
 
@@ -308,6 +324,7 @@ The current flow assumes invoice currency and payment currency are the same. Thi
 - **Tests require a running PostgreSQL instance and seeded data before execution.**
 - Integration tests hit the Express app directly and verify response payload shape and status codes.
 - Tests rely on seeded database data; run setup and seed steps in `server/prisma` before executing the test suite.
+- API contracts are documented in Swagger and can be validated manually against integration test responses.
 
 ## 8. Possible Improvements
 
@@ -323,14 +340,10 @@ Current Prisma models/tables use plural names (`Customers`, `Invoices`, `Payment
 
 The JavaScript-first stack keeps development lightweight and fast, but transaction-heavy and money-sensitive domains benefit from stronger typing. Introducing TypeScript (or another strongly typed approach) can reduce runtime mistakes and improve refactoring safety.
 
-### 4) Improve table UX for large datasets
-
-Pagination and server-side sorting (`orderBy`) can improve performance and usability as data grows. Sticky table headers would also improve readability during long-scroll scenarios.
-
-### 5) Split large pages into smaller feature components
+### 4) Split large pages into smaller feature components
 
 Some pages are currently component-heavy (for example, table pages). Splitting them into smaller feature components can improve maintainability and testability; where prop passing becomes noisy, lightweight shared state (context or co-located hooks) can be introduced selectively.
 
-### 6) Externalize currency metadata
+### 5) Externalize currency metadata
 
 Supported currencies are currently hardcoded in the frontend. A better approach is to maintain a currency reference table (or config endpoint) and load options dynamically. If cross-currency payments are introduced later, the same domain can be extended with an exchange-rate table (source, target, rate, effective time), payment fields for original and settled currency/amount, and a persisted FX-rate snapshot at payment time for auditability.

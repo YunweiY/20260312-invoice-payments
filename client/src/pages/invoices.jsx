@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   getAllInvoices,
   getInvoiceById,
@@ -30,6 +30,7 @@ import { DatePicker } from '@/components/common/date-picker';
 import { Label } from '@/components/ui/label';
 import { SimpleSheet } from '@/components/common/simple-sheet';
 import { InvoiceForm } from '@/components/invoices/invoice-form';
+import { InvoiceTable } from '@/components/invoices/invoice-table';
 import { CopyText } from '@/components/common/copy-text';
 import { PaymentForm } from '@/components/invoices/payment-form';
 import { formatAmount } from '@/lib/utils';
@@ -40,8 +41,10 @@ import {
   DropdownMenuGroup,
   DropdownMenuItem,
 } from '@/components/ui/dropdown-menu';
-import { CheckIcon, TrashIcon } from 'lucide-react';
+import { getInvoiceActionButtonTypes } from '@/components/invoices/invoice-action-buttons';
 import { toast } from 'sonner';
+import { useAutoPageSize } from '@/hooks/useAutoPageSize';
+import { CompactPagination } from '@/components/common/compact-pagination';
 
 export default function InvoicesPage() {
   const [invoices, setInvoices] = useState([]);
@@ -61,6 +64,16 @@ export default function InvoicesPage() {
   const [isPaymentFormOpen, setIsPaymentFormOpen] = useState(false);
 
   const [isUpdatingInvoiceStatus, setIsUpdatingInvoiceStatus] = useState(false);
+  const [paymentPage, setPaymentPage] = useState(1);
+
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(0);
+  const scrollAreaRef = useRef(null); // ref to the scroll area element
+  const limit = useAutoPageSize({
+    containerRef: scrollAreaRef,
+    rowHeight: 48, // h-12
+    initialLimit: 15,
+  });
 
   async function loadInvoices(filters = {}) {
     // Use undefined instead of ?? to check the filter values so we can pass null to reset filters
@@ -69,8 +82,15 @@ export default function InvoicesPage() {
       filters.fromDate !== undefined ? filters.fromDate : fromDate;
     const nextToDate = filters.toDate !== undefined ? filters.toDate : toDate;
 
-    const data = await getAllInvoices(nextStatus, nextFromDate, nextToDate);
-    setInvoices(data);
+    const { invoices, meta } = await getAllInvoices(
+      nextStatus,
+      nextFromDate,
+      nextToDate,
+      page,
+      limit
+    );
+    setInvoices(invoices);
+    setTotalPages(meta.totalPages);
   }
 
   async function runLoad(filters = {}) {
@@ -102,7 +122,11 @@ export default function InvoicesPage() {
 
   useEffect(() => {
     runLoad();
-  }, []);
+  }, [page, limit]);
+
+  useEffect(() => {
+    setPaymentPage(1);
+  }, [invoice?.id]);
 
   function resetFilters() {
     setStatus(null);
@@ -124,38 +148,15 @@ export default function InvoicesPage() {
     }
   }
 
-  function actionButtonTypes(invoice) {
-    if (invoice.status === 'DRAFT') {
-      return [
-        {
-          type: 'confirm',
-          label: 'Confirm',
-          icon: <CheckIcon />,
-          variant: 'default',
-          onClick: async () => handleUpdateInvoiceStatus(invoice.id, 'PENDING'),
-        },
-        {
-          type: 'void',
-          label: 'Void',
-          icon: <TrashIcon />,
-          variant: 'destructive',
-          onClick: async () => handleUpdateInvoiceStatus(invoice.id, 'VOID'),
-        },
-      ];
-    }
-    if (invoice.status === 'PENDING' && invoice._count.payments === 0) {
-      return [
-        {
-          type: 'void',
-          label: 'Void',
-          icon: <TrashIcon />,
-          variant: 'destructive',
-          onClick: async () => handleUpdateInvoiceStatus(invoice.id, 'VOID'),
-        },
-      ];
-    }
-    return [];
-  }
+  const PAYMENT_PAGE_SIZE = 10;
+  const paymentTotalPages = Math.ceil(
+    (invoice?.payments?.length || 0) / PAYMENT_PAGE_SIZE
+  );
+  const paginatedPayments =
+    invoice?.payments?.slice(
+      (paymentPage - 1) * PAYMENT_PAGE_SIZE,
+      paymentPage * PAYMENT_PAGE_SIZE
+    ) || [];
 
   return (
     <DashboardLayout
@@ -239,96 +240,71 @@ export default function InvoicesPage() {
           </div>
           {/* invoices table */}
           <Card className="flex h-full min-h-0 flex-1 flex-col p-2">
-            <ScrollArea className="h-full w-full">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Invoice ID</TableHead>
-                    <TableHead>Customer</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Issued At</TableHead>
-                    <TableHead>Due At</TableHead>
-                    <TableHead className="w-32">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {invoices.map((invoice) => (
-                    <TableRow
-                      key={invoice.id}
-                      onClick={() => loadInvoiceById(invoice.id)}
-                    >
-                      <TableCell>
-                        <CopyText text={invoice.id} />
-                      </TableCell>
-                      <TableCell>{invoice.customer.name}</TableCell>
-                      <TableCell>
-                        {formatAmount(invoice.amount)} {invoice.currency}
-                      </TableCell>
-                      <TableCell>{statusTag(invoice.status)}</TableCell>
-                      <TableCell>
-                        {new Date(invoice.issued_at).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell>
-                        {new Date(invoice.due_at).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell
-                        // prevent the click event from bubbling up to the parent table row
-                        onClick={(e) => e.stopPropagation()}
-                        onPointerDown={(e) => e.stopPropagation()}
-                      >
-                        {/* action buttons */}
-                        {(() => {
-                          const buttons = actionButtonTypes(invoice);
-                          return buttons.length > 0 ? (
-                            isUpdatingInvoiceStatus ? (
-                              <Button
-                                className="w-full"
-                                variant="outline"
-                                disabled
-                              >
-                                <Spinner className="size-4" />
-                                Updating...
-                              </Button>
-                            ) : (
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button className="w-full" variant="outline">
-                                    Update
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuGroup>
-                                    {buttons.map((button) => (
-                                      <DropdownMenuItem
-                                        key={button.type}
-                                        variant={button.variant}
-                                        onSelect={(e) => {
-                                          e.stopPropagation();
-                                          button.onClick();
-                                        }}
-                                        onPointerDown={(e) =>
-                                          e.stopPropagation()
-                                        }
-                                        disabled={isUpdatingInvoiceStatus}
-                                      >
-                                        {button.icon}
-                                        {button.label}
-                                      </DropdownMenuItem>
-                                    ))}
-                                  </DropdownMenuGroup>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            )
-                          ) : null;
-                        })()}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-              <ScrollBar orientation="horizontal" />
-            </ScrollArea>
+            <div ref={scrollAreaRef} className="min-h-0 flex-1">
+              <ScrollArea className="size-full">
+                <InvoiceTable
+                  invoices={invoices}
+                  showCustomer
+                  showActions
+                  rowClassName="h-12"
+                  onRowClick={(invoice) => loadInvoiceById(invoice.id)}
+                  renderActions={(invoice) => {
+                    const buttons = getInvoiceActionButtonTypes(
+                      invoice,
+                      handleUpdateInvoiceStatus
+                    );
+                    return buttons.length > 0 ? (
+                      isUpdatingInvoiceStatus ? (
+                        <Button className="w-full" variant="outline" disabled>
+                          <Spinner className="size-4" />
+                          Updating...
+                        </Button>
+                      ) : (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button className="w-full" variant="outline">
+                              Update
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuGroup>
+                              {buttons.map((button) => (
+                                <DropdownMenuItem
+                                  key={button.type}
+                                  variant={button.variant}
+                                  onSelect={(e) => {
+                                    e.stopPropagation();
+                                    button.onClick();
+                                  }}
+                                  onPointerDown={(e) => e.stopPropagation()}
+                                  disabled={isUpdatingInvoiceStatus}
+                                >
+                                  {button.icon}
+                                  {button.label}
+                                </DropdownMenuItem>
+                              ))}
+                            </DropdownMenuGroup>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )
+                    ) : null;
+                  }}
+                />
+                {invoices.length === 0 && (
+                  <p className="py-6 text-center text-gray-600 text-lg font-medium">
+                    No invoices found
+                  </p>
+                )}
+                <ScrollBar orientation="horizontal" />
+              </ScrollArea>
+            </div>
+            <div className="border-t p-2">
+              <CompactPagination
+                page={page}
+                totalPages={totalPages}
+                onPageChange={setPage}
+              />
+            </div>
           </Card>
         </div>
       )}
@@ -407,35 +383,54 @@ export default function InvoicesPage() {
                   </Button>
                 </div>
                 {/* payments table */}
-                {invoice.payments.length > 0 && (
-                  <Table className="border">
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Payment ID</TableHead>
-                        <TableHead>Amount</TableHead>
-                        <TableHead>Paid At</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {invoice.payments.map((payment) => (
-                        <TableRow key={payment.id}>
-                          <TableCell>{payment.id}</TableCell>
-                          <TableCell>
-                            {formatAmount(payment.amount)} {invoice.currency}
-                          </TableCell>
-                          <TableCell>
-                            {new Date(payment.paid_at).toLocaleDateString()}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
-                {invoice.payments.length === 0 && (
-                  <p className="text-gray-600 text-center text-lg font-medium">
-                    No related payments found
-                  </p>
-                )}
+                <Card className="flex min-h-0 flex-col p-2">
+                  <div className="min-h-0">
+                    <ScrollArea className="size-full">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Payment ID</TableHead>
+                            <TableHead>Amount</TableHead>
+                            <TableHead>Paid At</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        {paginatedPayments.length > 0 && (
+                          <TableBody>
+                            {paginatedPayments.map((payment) => (
+                              <TableRow key={payment.id}>
+                                <TableCell>{payment.id}</TableCell>
+                                <TableCell>
+                                  {formatAmount(payment.amount)}{' '}
+                                  {invoice.currency}
+                                </TableCell>
+                                <TableCell>
+                                  {new Date(
+                                    payment.paid_at
+                                  ).toLocaleDateString()}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        )}
+                      </Table>
+                      {invoice.payments.length === 0 && (
+                        <p className="py-6 text-center text-gray-600 text-lg font-medium">
+                          No related payments found
+                        </p>
+                      )}
+                      <ScrollBar orientation="horizontal" />
+                    </ScrollArea>
+                  </div>
+                  {paymentTotalPages > 1 && (
+                    <div className="border-t p-2">
+                      <CompactPagination
+                        page={paymentPage}
+                        totalPages={paymentTotalPages}
+                        onPageChange={setPaymentPage}
+                      />
+                    </div>
+                  )}
+                </Card>
               </div>
             </div>
           )}
