@@ -1,8 +1,10 @@
 import apiClient from './client';
 
-export const getAllPayments = async () => {
-  const response = await apiClient.get('/payments');
-  return response.data.data;
+export const getAllPayments = async (page, limit) => {
+  const response = await apiClient.get('/payments', {
+    params: { page, limit },
+  });
+  return { payments: response.data.data, meta: response.data.meta };
 };
 
 export const createPayment = async (invoice_id, amount) => {

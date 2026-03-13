@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AlertTriangleIcon } from 'lucide-react';
 
 import DashboardLayout from '@/layout/dashboard';
@@ -17,16 +17,27 @@ import {
 } from '@/components/ui/table';
 import { CopyText } from '@/components/common/copy-text';
 import { formatAmount } from '@/lib/utils';
+import { useAutoPageSize } from '@/hooks/useAutoPageSize';
+import { CompactPagination } from '@/components/common/compact-pagination';
 
 export default function PaymentsPage() {
   const [payments, setPayments] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(0);
+  const scrollAreaRef = useRef(null);
+  const limit = useAutoPageSize({
+    containerRef: scrollAreaRef,
+    rowHeight: 48,
+    initialLimit: 15,
+  });
 
   async function loadPayments() {
-    getAllPayments()
-      .then((data) => {
-        setPayments(data);
+    getAllPayments(page, limit)
+      .then(({ payments, meta }) => {
+        setPayments(payments);
+        setTotalPages(meta.totalPages);
         setError(null);
       })
       .catch((error) => {
@@ -39,7 +50,7 @@ export default function PaymentsPage() {
 
   useEffect(() => {
     loadPayments();
-  }, []);
+  }, [page, limit]);
 
   return (
     <DashboardLayout title="Payments" enableButton={false}>
@@ -69,38 +80,46 @@ export default function PaymentsPage() {
       ) : (
         <div className="flex h-full min-h-0 p-4">
           <Card className="flex h-full min-h-0 flex-1 flex-col p-2">
-            <ScrollArea className="h-full w-full">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Payment ID</TableHead>
-                    <TableHead>Invoice ID</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Paid At</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {payments.map((payment) => (
-                    <TableRow key={payment.id}>
-                      <TableCell>
-                        <CopyText text={payment.id} />
-                      </TableCell>
-                      <TableCell>
-                        <CopyText text={payment.invoice_id} />
-                      </TableCell>
-                      <TableCell>
-                        {formatAmount(payment.amount)}{' '}
-                        {payment.invoice.currency}
-                      </TableCell>
-                      <TableCell>
-                        {new Date(payment.paid_at).toLocaleDateString()}
-                      </TableCell>
+            <div ref={scrollAreaRef} className="min-h-0 flex-1">
+              <ScrollArea className="size-full">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Payment ID</TableHead>
+                      <TableHead>Invoice ID</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Paid At</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-              <ScrollBar orientation="horizontal" />
-            </ScrollArea>
+                  </TableHeader>
+                  <TableBody>
+                    {payments.map((payment) => (
+                      <TableRow className="h-12" key={payment.id}>
+                        <TableCell>
+                          <CopyText text={payment.id} />
+                        </TableCell>
+                        <TableCell>
+                          <CopyText text={payment.invoice_id} />
+                        </TableCell>
+                        <TableCell>
+                          {formatAmount(payment.amount)} {payment.invoice.currency}
+                        </TableCell>
+                        <TableCell>
+                          {new Date(payment.paid_at).toLocaleDateString()}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+                <ScrollBar orientation="horizontal" />
+              </ScrollArea>
+            </div>
+            <div className="border-t p-2">
+              <CompactPagination
+                page={page}
+                totalPages={totalPages}
+                onPageChange={setPage}
+              />
+            </div>
           </Card>
         </div>
       )}

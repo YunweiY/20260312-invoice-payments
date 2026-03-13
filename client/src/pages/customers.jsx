@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AlertTriangleIcon } from 'lucide-react';
 import DashboardLayout from '@/layout/dashboard';
 import { getAllCustomers } from '@/api/customers.api';
@@ -28,6 +28,8 @@ import {
 import { DatePicker } from '@/components/common/date-picker';
 import { CopyText } from '@/components/common/copy-text';
 import { formatAmount } from '@/lib/utils';
+import { useAutoPageSize } from '@/hooks/useAutoPageSize';
+import { CompactPagination } from '@/components/common/compact-pagination';
 
 export default function CustomersPage() {
   const [customers, setCustomers] = useState([]);
@@ -43,6 +45,14 @@ export default function CustomersPage() {
   const [status, setStatus] = useState(null);
   const [fromDate, setFromDate] = useState(null);
   const [toDate, setToDate] = useState(null);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(0);
+  const scrollAreaRef = useRef(null);
+  const limit = useAutoPageSize({
+    containerRef: scrollAreaRef,
+    rowHeight: 48,
+    initialLimit: 15,
+  });
 
   async function loadInvoices(filters = {}) {
     const nextStatus = filters.status !== undefined ? filters.status : status;
@@ -52,13 +62,13 @@ export default function CustomersPage() {
     setIsSheetLoading(true);
     setSheetError(null);
     try {
-      const data = await getCustomerInvoices(
+      const { invoices } = await getCustomerInvoices(
         selectedCustomer.id,
         nextStatus,
         nextFromDate,
         nextToDate
       );
-      setInvoices(data);
+      setInvoices(invoices);
     } catch (error) {
       setSheetError(error);
     } finally {
@@ -78,8 +88,8 @@ export default function CustomersPage() {
     setIsSheetLoading(true);
     setSheetError(null);
     try {
-      const data = await getCustomerInvoices(id, status, fromDate, toDate);
-      setInvoices(data);
+      const { invoices } = await getCustomerInvoices(id, status, fromDate, toDate);
+      setInvoices(invoices);
     } catch (error) {
       setSheetError(error);
     } finally {
@@ -88,9 +98,10 @@ export default function CustomersPage() {
   }
 
   async function loadCustomers() {
-    getAllCustomers()
-      .then((data) => {
-        setCustomers(data);
+    getAllCustomers(page, limit)
+      .then(({ customers, meta }) => {
+        setCustomers(customers);
+        setTotalPages(meta.totalPages);
         setError(null);
       })
       .catch((error) => {
@@ -103,7 +114,7 @@ export default function CustomersPage() {
 
   useEffect(() => {
     loadCustomers();
-  }, []);
+  }, [page, limit]);
 
   return (
     <DashboardLayout title="Customers" enableButton={false}>
@@ -133,33 +144,43 @@ export default function CustomersPage() {
       ) : (
         <div className="flex h-full min-h-0 p-4">
           <Card className="flex h-full min-h-0 flex-1 flex-col p-2">
-            <ScrollArea className="h-full w-full">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Customer ID</TableHead>
-                    <TableHead>Name</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {customers.map((customer) => (
-                    <TableRow
-                      key={customer.id}
-                      onClick={() => {
-                        setSelectedCustomer(customer);
-                        loadInvoicesByCustomerId(customer.id);
-                      }}
-                    >
-                      <TableCell>
-                        <CopyText text={customer.id} />
-                      </TableCell>
-                      <TableCell>{customer.name}</TableCell>
+            <div ref={scrollAreaRef} className="min-h-0 flex-1">
+              <ScrollArea className="size-full">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Customer ID</TableHead>
+                      <TableHead>Name</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-              <ScrollBar orientation="horizontal" />
-            </ScrollArea>
+                  </TableHeader>
+                  <TableBody>
+                    {customers.map((customer) => (
+                      <TableRow
+                        className="h-12"
+                        key={customer.id}
+                        onClick={() => {
+                          setSelectedCustomer(customer);
+                          loadInvoicesByCustomerId(customer.id);
+                        }}
+                      >
+                        <TableCell>
+                          <CopyText text={customer.id} />
+                        </TableCell>
+                        <TableCell>{customer.name}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+                <ScrollBar orientation="horizontal" />
+              </ScrollArea>
+            </div>
+            <div className="border-t p-2">
+              <CompactPagination
+                page={page}
+                totalPages={totalPages}
+                onPageChange={setPage}
+              />
+            </div>
           </Card>
         </div>
       )}

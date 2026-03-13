@@ -72,8 +72,8 @@ export function InvoiceForm({ open, setOpen, onSuccessSubmit }) {
     setLoadError(null);
     setCustomers([{ id: 'initial', name: 'Loading customers...' }]);
     getAllCustomers()
-      .then((data) => {
-        setCustomers(data);
+      .then(({ customers }) => {
+        setCustomers(customers);
       })
       .catch((error) => {
         setLoadError(error);
