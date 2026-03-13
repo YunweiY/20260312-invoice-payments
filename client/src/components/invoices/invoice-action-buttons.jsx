@@ -1,3 +1,4 @@
+import React from 'react';
 import { CheckIcon, TrashIcon } from 'lucide-react';
 
 export function getInvoiceActionButtonTypes(invoice, onStatusUpdate) {
@@ -6,14 +7,14 @@ export function getInvoiceActionButtonTypes(invoice, onStatusUpdate) {
       {
         type: 'confirm',
         label: 'Confirm',
-        icon: <CheckIcon />,
+        icon: React.createElement(CheckIcon),
         variant: 'default',
         onClick: async () => onStatusUpdate(invoice.id, 'PENDING'),
       },
       {
         type: 'void',
         label: 'Void',
-        icon: <TrashIcon />,
+        icon: React.createElement(TrashIcon),
         variant: 'destructive',
         onClick: async () => onStatusUpdate(invoice.id, 'VOID'),
       },
@@ -25,7 +26,7 @@ export function getInvoiceActionButtonTypes(invoice, onStatusUpdate) {
       {
         type: 'void',
         label: 'Void',
-        icon: <TrashIcon />,
+        icon: React.createElement(TrashIcon),
         variant: 'destructive',
         onClick: async () => onStatusUpdate(invoice.id, 'VOID'),
       },

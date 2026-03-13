@@ -64,6 +64,7 @@ export default function InvoicesPage() {
   const [isPaymentFormOpen, setIsPaymentFormOpen] = useState(false);
 
   const [isUpdatingInvoiceStatus, setIsUpdatingInvoiceStatus] = useState(false);
+  const [paymentPage, setPaymentPage] = useState(1);
 
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
@@ -123,6 +124,10 @@ export default function InvoicesPage() {
     runLoad();
   }, [page, limit]);
 
+  useEffect(() => {
+    setPaymentPage(1);
+  }, [invoice?.id]);
+
   function resetFilters() {
     setStatus(null);
     setFromDate(null);
@@ -142,6 +147,16 @@ export default function InvoicesPage() {
       setIsUpdatingInvoiceStatus(false);
     }
   }
+
+  const PAYMENT_PAGE_SIZE = 10;
+  const paymentTotalPages = Math.ceil(
+    (invoice?.payments?.length || 0) / PAYMENT_PAGE_SIZE
+  );
+  const paginatedPayments =
+    invoice?.payments?.slice(
+      (paymentPage - 1) * PAYMENT_PAGE_SIZE,
+      paymentPage * PAYMENT_PAGE_SIZE
+    ) || [];
 
   return (
     <DashboardLayout
@@ -364,28 +379,45 @@ export default function InvoicesPage() {
                 </div>
                 {/* payments table */}
                 {invoice.payments.length > 0 && (
-                  <Table className="border">
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Payment ID</TableHead>
-                        <TableHead>Amount</TableHead>
-                        <TableHead>Paid At</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {invoice.payments.map((payment) => (
-                        <TableRow key={payment.id}>
-                          <TableCell>{payment.id}</TableCell>
-                          <TableCell>
-                            {formatAmount(payment.amount)} {invoice.currency}
-                          </TableCell>
-                          <TableCell>
-                            {new Date(payment.paid_at).toLocaleDateString()}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                  <Card className="flex h-full min-h-0 flex-1 flex-col p-2">
+                    <div className="min-h-0 flex-1">
+                      <ScrollArea className="size-full">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Payment ID</TableHead>
+                              <TableHead>Amount</TableHead>
+                              <TableHead>Paid At</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {paginatedPayments.map((payment) => (
+                              <TableRow key={payment.id}>
+                                <TableCell>{payment.id}</TableCell>
+                                <TableCell>
+                                  {formatAmount(payment.amount)}{' '}
+                                  {invoice.currency}
+                                </TableCell>
+                                <TableCell>
+                                  {new Date(
+                                    payment.paid_at
+                                  ).toLocaleDateString()}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                        <ScrollBar orientation="horizontal" />
+                      </ScrollArea>
+                    </div>
+                    <div className="border-t p-2">
+                      <CompactPagination
+                        page={paymentPage}
+                        totalPages={paymentTotalPages}
+                        onPageChange={setPaymentPage}
+                      />
+                    </div>
+                  </Card>
                 )}
                 {invoice.payments.length === 0 && (
                   <p className="text-gray-600 text-center text-lg font-medium">
