@@ -25,3 +25,10 @@ export const createInvoice = async (customer_id, amount, currency, due_at) => {
   });
   return response.data.data;
 };
+
+export const updateInvoiceStatus = async (id, status) => {
+  const response = await apiClient.patch(`/invoices/${id}/status`, {
+    status,
+  });
+  return response.data.data;
+};

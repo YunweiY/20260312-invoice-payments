@@ -1,5 +1,9 @@
 import { useState, useEffect } from 'react';
-import { getAllInvoices, getInvoiceById } from '@/api/invoices.api';
+import {
+  getAllInvoices,
+  getInvoiceById,
+  updateInvoiceStatus,
+} from '@/api/invoices.api';
 import DashboardLayout from '@/layout/dashboard';
 import {
   Table,
@@ -29,6 +33,15 @@ import { InvoiceForm } from '@/components/invoices/invoice-form';
 import { CopyText } from '@/components/common/copy-text';
 import { PaymentForm } from '@/components/invoices/payment-form';
 import { formatAmount } from '@/lib/utils';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+} from '@/components/ui/dropdown-menu';
+import { CheckIcon, TrashIcon } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function InvoicesPage() {
   const [invoices, setInvoices] = useState([]);
@@ -45,8 +58,9 @@ export default function InvoicesPage() {
   const [invoice, setInvoice] = useState(null);
 
   const [isFormOpen, setIsFormOpen] = useState(false);
-
   const [isPaymentFormOpen, setIsPaymentFormOpen] = useState(false);
+
+  const [isUpdatingInvoiceStatus, setIsUpdatingInvoiceStatus] = useState(false);
 
   async function loadInvoices(filters = {}) {
     // Use undefined instead of ?? to check the filter values so we can pass null to reset filters
@@ -97,9 +111,51 @@ export default function InvoicesPage() {
     runLoad({ status: null, fromDate: null, toDate: null });
   }
 
-  const showActionButtons = (invoice) => {
-    return invoice.status === 'DRAFT';
-  };
+  async function handleUpdateInvoiceStatus(id, status) {
+    try {
+      setIsUpdatingInvoiceStatus(true);
+      await updateInvoiceStatus(id, status);
+      toast.success(`Invoice status updated to ${status}`);
+      await runLoad();
+    } catch (error) {
+      toast.error(error?.response?.data?.error?.message || error.message);
+    } finally {
+      setIsUpdatingInvoiceStatus(false);
+    }
+  }
+
+  function actionButtonTypes(invoice) {
+    if (invoice.status === 'DRAFT') {
+      return [
+        {
+          type: 'confirm',
+          label: 'Confirm',
+          icon: <CheckIcon />,
+          variant: 'default',
+          onClick: async () => handleUpdateInvoiceStatus(invoice.id, 'PENDING'),
+        },
+        {
+          type: 'void',
+          label: 'Void',
+          icon: <TrashIcon />,
+          variant: 'destructive',
+          onClick: async () => handleUpdateInvoiceStatus(invoice.id, 'VOID'),
+        },
+      ];
+    }
+    if (invoice.status === 'PENDING' && invoice._count.payments === 0) {
+      return [
+        {
+          type: 'void',
+          label: 'Void',
+          icon: <TrashIcon />,
+          variant: 'destructive',
+          onClick: async () => handleUpdateInvoiceStatus(invoice.id, 'VOID'),
+        },
+      ];
+    }
+    return [];
+  }
 
   return (
     <DashboardLayout
@@ -193,7 +249,7 @@ export default function InvoicesPage() {
                     <TableHead>Status</TableHead>
                     <TableHead>Issued At</TableHead>
                     <TableHead>Due At</TableHead>
-                    <TableHead>Actions</TableHead>
+                    <TableHead className="w-32">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -216,10 +272,56 @@ export default function InvoicesPage() {
                       <TableCell>
                         {new Date(invoice.due_at).toLocaleDateString()}
                       </TableCell>
-                      <TableCell>
-                        {showActionButtons(invoice) && (
-                          <Button variant="outline">Confirm</Button>
-                        )}
+                      <TableCell
+                        // prevent the click event from bubbling up to the parent table row
+                        onClick={(e) => e.stopPropagation()}
+                        onPointerDown={(e) => e.stopPropagation()}
+                      >
+                        {/* action buttons */}
+                        {(() => {
+                          const buttons = actionButtonTypes(invoice);
+                          return buttons.length > 0 ? (
+                            isUpdatingInvoiceStatus ? (
+                              <Button
+                                className="w-full"
+                                variant="outline"
+                                disabled
+                              >
+                                <Spinner className="size-4" />
+                                Updating...
+                              </Button>
+                            ) : (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button className="w-full" variant="outline">
+                                    Update
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuGroup>
+                                    {buttons.map((button) => (
+                                      <DropdownMenuItem
+                                        key={button.type}
+                                        variant={button.variant}
+                                        onSelect={(e) => {
+                                          e.stopPropagation();
+                                          button.onClick();
+                                        }}
+                                        onPointerDown={(e) =>
+                                          e.stopPropagation()
+                                        }
+                                        disabled={isUpdatingInvoiceStatus}
+                                      >
+                                        {button.icon}
+                                        {button.label}
+                                      </DropdownMenuItem>
+                                    ))}
+                                  </DropdownMenuGroup>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            )
+                          ) : null;
+                        })()}
                       </TableCell>
                     </TableRow>
                   ))}

@@ -35,6 +35,11 @@ const getInvoices = async (customer_id, status, fromDate, toDate) => {
           name: true,
         },
       },
+      _count: {
+        select: {
+          payments: true,
+        },
+      },
     },
     where,
   });
