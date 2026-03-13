@@ -264,11 +264,19 @@ All status transitions:
 - `PAID ->` no further transitions (terminal)
 - `VOID ->` no further transitions (terminal)
 
-### 5) Currency precision strategy (2-decimal contract)
+### 5) Concurrency control for payment and status updates
+
+To avoid race conditions (for example, two payments arriving at the same time or a payment and status update competing on the same invoice), critical write paths run inside `prisma.$transaction(...)` and acquire a row-level lock with a Prisma raw query:
+
+- `SELECT * FROM "Invoices" WHERE id = ${id} FOR UPDATE`
+
+This design ensures only one transaction can mutate a target invoice at a time, so invariant checks (status, remaining amount, overpayment prevention) are evaluated against a consistent state before writes are committed.
+
+### 6) Currency precision strategy (2-decimal contract)
 
 Amounts are validated as decimal strings (up to 2 decimal places) at API boundaries, while backend calculations use `Prisma.Decimal` for comparisons and arithmetic to avoid floating-point precision loss. This design mirrors real-world currency handling and prevents subtle overpay/comparison bugs caused by binary floating-point math.
 
-### 6) Single-currency payment scope
+### 7) Single-currency payment scope
 
 The current flow assumes invoice currency and payment currency are the same. This keeps the first version simpler and reduces complexity in settlement and reconciliation logic.
 

@@ -189,4 +189,52 @@ describe('PATCH /api/invoices/:id/status', () => {
       },
     });
   });
+
+  it('handles concurrent VOID status updates safely', async () => {
+    const invoice = await createInvoiceWithState({ status: 'PENDING' });
+
+    const [res1, res2] = await Promise.all([
+      request(app).patch(`/api/invoices/${invoice.id}/status`).send({ status: 'VOID' }),
+      request(app).patch(`/api/invoices/${invoice.id}/status`).send({ status: 'VOID' }),
+    ]);
+
+    expect([res1.status, res2.status].sort()).toEqual([200, 400]);
+
+    const updatedInvoice = await prisma.invoices.findUnique({
+      where: { id: invoice.id },
+      select: { status: true },
+    });
+    expect(updatedInvoice?.status).toBe('VOID');
+  });
+
+  it('keeps status/payment invariants when VOID and payment requests race', async () => {
+    const invoice = await createInvoiceWithState({ status: 'PENDING', amount: 100 });
+
+    const [voidRes, paymentRes] = await Promise.all([
+      request(app).patch(`/api/invoices/${invoice.id}/status`).send({ status: 'VOID' }),
+      request(app).post(`/api/invoices/${invoice.id}/payments`).send({ amount: '10' }),
+    ]);
+
+    expect([voidRes.status, paymentRes.status].sort()).toEqual([200, 400]);
+
+    const [updatedInvoice, payments] = await Promise.all([
+      prisma.invoices.findUnique({
+        where: { id: invoice.id },
+        select: { status: true },
+      }),
+      prisma.payments.findMany({
+        where: { invoice_id: invoice.id },
+        select: { id: true, amount: true },
+      }),
+    ]);
+
+    if (voidRes.status === 200) {
+      expect(updatedInvoice?.status).toBe('VOID');
+      expect(payments).toHaveLength(0);
+    } else {
+      expect(updatedInvoice?.status).toBe('PENDING');
+      expect(payments).toHaveLength(1);
+      expect(Number(payments[0].amount)).toBe(10);
+    }
+  });
 });

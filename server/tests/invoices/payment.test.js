@@ -241,4 +241,63 @@ describe('POST /api/invoices/:id/payments', () => {
       },
     });
   });
+
+  it('handles concurrent payments safely when total equals invoice amount', async () => {
+    const invoice = await createInvoiceWithState({
+      status: 'PENDING',
+      amount: 100,
+    });
+
+    const [res1, res2] = await Promise.all([
+      request(app).post(`/api/invoices/${invoice.id}/payments`).send({ amount: '50' }),
+      request(app).post(`/api/invoices/${invoice.id}/payments`).send({ amount: '50' }),
+    ]);
+
+    expect([res1.status, res2.status].sort()).toEqual([200, 200]);
+
+    const [updatedInvoice, payments] = await Promise.all([
+      prisma.invoices.findUnique({
+        where: { id: invoice.id },
+        select: { status: true, amount: true },
+      }),
+      prisma.payments.findMany({
+        where: { invoice_id: invoice.id },
+        select: { amount: true },
+      }),
+    ]);
+
+    const totalPaid = payments.reduce((sum, payment) => {
+      return sum + Number(payment.amount);
+    }, 0);
+
+    expect(payments).toHaveLength(2);
+    expect(totalPaid).toBe(100);
+    expect(updatedInvoice?.status).toBe('PAID');
+  });
+
+  it('prevents overpayment under concurrent requests', async () => {
+    const invoice = await createInvoiceWithState({
+      status: 'PENDING',
+      amount: 100,
+    });
+
+    const [res1, res2] = await Promise.all([
+      request(app).post(`/api/invoices/${invoice.id}/payments`).send({ amount: '70' }),
+      request(app).post(`/api/invoices/${invoice.id}/payments`).send({ amount: '40' }),
+    ]);
+
+    const statuses = [res1.status, res2.status].sort();
+    expect(statuses).toEqual([200, 400]);
+
+    const payments = await prisma.payments.findMany({
+      where: { invoice_id: invoice.id },
+      select: { amount: true },
+    });
+    const totalPaid = payments.reduce((sum, payment) => {
+      return sum + Number(payment.amount);
+    }, 0);
+
+    expect(totalPaid).toBeLessThanOrEqual(100);
+    expect(payments).toHaveLength(1);
+  });
 });
