@@ -41,7 +41,7 @@ import {
   DropdownMenuGroup,
   DropdownMenuItem,
 } from '@/components/ui/dropdown-menu';
-import { CheckIcon, TrashIcon } from 'lucide-react';
+import { getInvoiceActionButtonTypes } from '@/components/invoices/invoice-action-buttons';
 import { toast } from 'sonner';
 import { useAutoPageSize } from '@/hooks/useAutoPageSize';
 import { CompactPagination } from '@/components/common/compact-pagination';
@@ -143,39 +143,6 @@ export default function InvoicesPage() {
     }
   }
 
-  function actionButtonTypes(invoice) {
-    if (invoice.status === 'DRAFT') {
-      return [
-        {
-          type: 'confirm',
-          label: 'Confirm',
-          icon: <CheckIcon />,
-          variant: 'default',
-          onClick: async () => handleUpdateInvoiceStatus(invoice.id, 'PENDING'),
-        },
-        {
-          type: 'void',
-          label: 'Void',
-          icon: <TrashIcon />,
-          variant: 'destructive',
-          onClick: async () => handleUpdateInvoiceStatus(invoice.id, 'VOID'),
-        },
-      ];
-    }
-    if (invoice.status === 'PENDING' && invoice._count.payments === 0) {
-      return [
-        {
-          type: 'void',
-          label: 'Void',
-          icon: <TrashIcon />,
-          variant: 'destructive',
-          onClick: async () => handleUpdateInvoiceStatus(invoice.id, 'VOID'),
-        },
-      ];
-    }
-    return [];
-  }
-
   return (
     <DashboardLayout
       title="Invoices"
@@ -267,7 +234,10 @@ export default function InvoicesPage() {
                   rowClassName="h-12"
                   onRowClick={(invoice) => loadInvoiceById(invoice.id)}
                   renderActions={(invoice) => {
-                    const buttons = actionButtonTypes(invoice);
+                    const buttons = getInvoiceActionButtonTypes(
+                      invoice,
+                      handleUpdateInvoiceStatus
+                    );
                     return buttons.length > 0 ? (
                       isUpdatingInvoiceStatus ? (
                         <Button className="w-full" variant="outline" disabled>
