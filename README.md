@@ -18,7 +18,7 @@ It models a realistic payment flow where invoices can be paid in multiple instal
 
 ### What this project does
 
-- Browse customers, invoices, and payments in table views, and filter invoices by status and issue date.
+- Browse customers, invoices, and payments in table views with pagination, and filter invoices by status and issue date.
 - View detailed customer and invoice records, along with their related entries.
 - Create new invoices.
 - Pay invoices with full or partial payments.
@@ -340,14 +340,10 @@ Current Prisma models/tables use plural names (`Customers`, `Invoices`, `Payment
 
 The JavaScript-first stack keeps development lightweight and fast, but transaction-heavy and money-sensitive domains benefit from stronger typing. Introducing TypeScript (or another strongly typed approach) can reduce runtime mistakes and improve refactoring safety.
 
-### 4) Improve table UX for large datasets
-
-Pagination and server-side sorting (`orderBy`) can improve performance and usability as data grows. Sticky table headers would also improve readability during long-scroll scenarios.
-
-### 5) Split large pages into smaller feature components
+### 4) Split large pages into smaller feature components
 
 Some pages are currently component-heavy (for example, table pages). Splitting them into smaller feature components can improve maintainability and testability; where prop passing becomes noisy, lightweight shared state (context or co-located hooks) can be introduced selectively.
 
-### 6) Externalize currency metadata
+### 5) Externalize currency metadata
 
 Supported currencies are currently hardcoded in the frontend. A better approach is to maintain a currency reference table (or config endpoint) and load options dynamically. If cross-currency payments are introduced later, the same domain can be extended with an exchange-rate table (source, target, rate, effective time), payment fields for original and settled currency/amount, and a persisted FX-rate snapshot at payment time for auditability.
