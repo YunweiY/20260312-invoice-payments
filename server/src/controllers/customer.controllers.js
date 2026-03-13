@@ -2,13 +2,22 @@ import * as customerService from '../services/customer.services.js';
 import { BadRequestError } from '../errors/AppError.js';
 import validator from 'validator';
 import { validateInvoiceStatus } from '../utils/validateInvoiceStatus.js';
+import parsePagination from '../utils/parsePagination.js';
 
 const getCustomersController = async (req, res, next) => {
   try {
-    const customers = await customerService.getCustomersService();
+    const { page, limit } = parsePagination(req.query);
+    const { customers, total, totalPages } =
+      await customerService.getCustomersService(page, limit);
     res.status(200).json({
       status: 'success',
       data: customers,
+      meta: {
+        total,
+        totalPages,
+        currentPage: page,
+        limit,
+      },
     });
   } catch (error) {
     next(error);
@@ -19,6 +28,7 @@ const getCustomerInvoicesController = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { status, from, to } = req.query;
+    const { page, limit } = parsePagination(req.query);
 
     // validate customer id
     if (!id) {
@@ -47,16 +57,25 @@ const getCustomerInvoicesController = async (req, res, next) => {
       );
     }
 
-    const invoices = await customerService.getCustomerInvoicesService(
-      id,
-      status,
-      from,
-      to
-    );
+    const { invoices, total, totalPages } =
+      await customerService.getCustomerInvoicesService(
+        id,
+        status,
+        from,
+        to,
+        page,
+        limit
+      );
 
     res.status(200).json({
       status: 'success',
       data: invoices,
+      meta: {
+        total,
+        totalPages,
+        currentPage: page,
+        limit,
+      },
     });
   } catch (error) {
     next(error);

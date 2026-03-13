@@ -14,6 +14,14 @@ describe('GET /api/invoices/:id', () => {
     expect(listResponse.body.status).toBe('success');
     expect(Array.isArray(listResponse.body.data)).toBe(true);
     expect(listResponse.body.data.length).toBeGreaterThan(0);
+    expect(listResponse.body.meta).toEqual(
+      expect.objectContaining({
+        total: expect.any(Number),
+        totalPages: expect.any(Number),
+        currentPage: 1,
+        limit: 10,
+      })
+    );
 
     const existingInvoiceId = listResponse.body.data[0].id;
     const response = await request(app).get(

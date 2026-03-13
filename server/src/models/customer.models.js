@@ -1,8 +1,15 @@
 import prisma from '../config/prisma.js';
 
-const getCustomers = async () => {
-  const customers = await prisma.customers.findMany();
-  return customers;
+const getCustomers = async (page, limit) => {
+  const customers = await prisma.customers.findMany({
+    skip: (page - 1) * limit,
+    take: limit,
+    orderBy: {
+      name: 'asc',
+    },
+  });
+  const total = await prisma.customers.count();
+  return { customers, total };
 };
 
 const getCustomerById = async (id) => {

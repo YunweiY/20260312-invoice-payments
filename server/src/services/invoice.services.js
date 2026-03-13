@@ -6,7 +6,7 @@ import prisma from '../config/prisma.js';
 import { NotFoundError } from '../errors/AppError.js';
 import { BadRequestError } from '../errors/AppError.js';
 
-const getInvoicesService = async (status, from, to) => {
+const getInvoicesService = async (status, from, to, page, limit) => {
   let fromDate;
   let toDate;
 
@@ -21,13 +21,18 @@ const getInvoicesService = async (status, from, to) => {
     throw BadRequestError('From date must be before to date', 'BAD_REQUEST');
   }
 
-  const invoices = await invoiceModel.getInvoices(
+  const { invoices, total } = await invoiceModel.getInvoices(
     null,
     status,
     fromDate,
-    toDate
+    toDate,
+    page,
+    limit
   );
-  return invoices;
+
+  const totalPages = Math.ceil(total / limit);
+
+  return { invoices, total, totalPages };
 };
 
 const getInvoiceByIdService = async (id) => {
@@ -102,7 +107,12 @@ const payInvoiceService = async (id, amount) => {
     }
 
     // get all payments for the invoice
-    const payments = await paymentModel.getPayments(id, tx);
+    const { payments } = await paymentModel.getPayments(
+      id,
+      undefined,
+      undefined,
+      tx
+    );
 
     // calculate the total paid amount
     // must use decimal to avoid floating point precision issues
@@ -159,7 +169,12 @@ const updateInvoiceStatusService = async (id, status) => {
       throw BadRequestError(`Invoice is already PENDING`, 'BAD_REQUEST');
     }
     // check whether the status has payments
-    const payments = await paymentModel.getPayments(id, tx);
+    const { payments } = await paymentModel.getPayments(
+      id,
+      undefined,
+      undefined,
+      tx
+    );
     if (payments.length > 0) {
       // if so, throw an error
       throw BadRequestError(

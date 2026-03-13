@@ -5,6 +5,16 @@ import prisma from '../../src/config/prisma.js';
 
 const NON_EXISTENT_CUSTOMER_ID = '00000000-0000-0000-0000-000000000000';
 const createdCustomerIds = [];
+const expectPaginationMeta = (meta, page, limit) => {
+  expect(meta).toEqual(
+    expect.objectContaining({
+      total: expect.any(Number),
+      totalPages: expect.any(Number),
+      currentPage: page,
+      limit,
+    })
+  );
+};
 
 describe('GET /api/customers/:id/invoices', () => {
   afterAll(async () => {
@@ -38,6 +48,7 @@ describe('GET /api/customers/:id/invoices', () => {
     expect(response.body.status).toBe('success');
     expect(Array.isArray(response.body.data)).toBe(true);
     expect(response.body.data.length).toBeGreaterThan(0);
+    expectPaginationMeta(response.body.meta, 1, 10);
 
     for (const invoice of response.body.data) {
       expect(invoice).toEqual(
@@ -71,6 +82,7 @@ describe('GET /api/customers/:id/invoices', () => {
     expect(response.status).toBe(200);
     expect(response.body.status).toBe('success');
     expect(Array.isArray(response.body.data)).toBe(true);
+    expectPaginationMeta(response.body.meta, 1, 10);
 
     for (const invoice of response.body.data) {
       expect(invoice.status).toBe('PENDING');
@@ -93,6 +105,7 @@ describe('GET /api/customers/:id/invoices', () => {
     expect(response.status).toBe(200);
     expect(response.body.status).toBe('success');
     expect(Array.isArray(response.body.data)).toBe(true);
+    expectPaginationMeta(response.body.meta, 1, 10);
 
     const fromMs = new Date(from).getTime();
     const toMs = new Date(to).getTime();
@@ -120,6 +133,7 @@ describe('GET /api/customers/:id/invoices', () => {
     expect(response.status).toBe(200);
     expect(response.body.status).toBe('success');
     expect(Array.isArray(response.body.data)).toBe(true);
+    expectPaginationMeta(response.body.meta, 1, 10);
 
     const fromMs = new Date(from).getTime();
     const toMs = new Date(to).getTime();
@@ -236,10 +250,9 @@ describe('GET /api/customers/:id/invoices', () => {
     );
 
     expect(response.status).toBe(200);
-    expect(response.body).toEqual({
-      status: 'success',
-      data: [],
-    });
+    expect(response.body.status).toBe('success');
+    expect(response.body.data).toEqual([]);
+    expectPaginationMeta(response.body.meta, 1, 10);
   });
 
   it('returns success with empty list for existing customer without invoices', async () => {
@@ -258,9 +271,65 @@ describe('GET /api/customers/:id/invoices', () => {
     );
 
     expect(response.status).toBe(200);
+    expect(response.body.status).toBe('success');
+    expect(response.body.data).toEqual([]);
+    expectPaginationMeta(response.body.meta, 1, 10);
+  });
+
+  it('supports pagination query params', async () => {
+    const invoiceWithCustomer = await prisma.invoices.findFirst({
+      select: { customer_id: true },
+    });
+    expect(invoiceWithCustomer).not.toBeNull();
+
+    const response = await request(app)
+      .get(`/api/customers/${invoiceWithCustomer.customer_id}/invoices`)
+      .query({ page: '1', limit: '2' });
+
+    expect(response.status).toBe(200);
+    expect(response.body.status).toBe('success');
+    expect(Array.isArray(response.body.data)).toBe(true);
+    expect(response.body.data.length).toBeLessThanOrEqual(2);
+    expectPaginationMeta(response.body.meta, 1, 2);
+  });
+
+  it('returns 400 for non-integer page', async () => {
+    const invoiceWithCustomer = await prisma.invoices.findFirst({
+      select: { customer_id: true },
+    });
+    expect(invoiceWithCustomer).not.toBeNull();
+
+    const response = await request(app)
+      .get(`/api/customers/${invoiceWithCustomer.customer_id}/invoices`)
+      .query({ page: 'abc' });
+
+    expect(response.status).toBe(400);
     expect(response.body).toEqual({
-      status: 'success',
-      data: [],
+      status: 'error',
+      error: {
+        code: 'BAD_REQUEST',
+        message: 'Page must be a positive integer',
+      },
+    });
+  });
+
+  it('returns 400 for non-integer limit', async () => {
+    const invoiceWithCustomer = await prisma.invoices.findFirst({
+      select: { customer_id: true },
+    });
+    expect(invoiceWithCustomer).not.toBeNull();
+
+    const response = await request(app)
+      .get(`/api/customers/${invoiceWithCustomer.customer_id}/invoices`)
+      .query({ limit: 'abc' });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      status: 'error',
+      error: {
+        code: 'BAD_REQUEST',
+        message: 'Limit must be an integer between 1 and 100',
+      },
     });
   });
 });

@@ -4,6 +4,16 @@ import app from '../../src/app.js';
 import prisma from '../../src/config/prisma.js';
 
 const VALID_STATUSES = ['DRAFT', 'PENDING', 'PAID', 'VOID'];
+const expectPaginationMeta = (meta, page, limit) => {
+  expect(meta).toEqual(
+    expect.objectContaining({
+      total: expect.any(Number),
+      totalPages: expect.any(Number),
+      currentPage: page,
+      limit,
+    })
+  );
+};
 
 describe('GET /api/invoices', () => {
   afterAll(async () => {
@@ -16,6 +26,7 @@ describe('GET /api/invoices', () => {
     expect(response.status).toBe(200);
     expect(response.body.status).toBe('success');
     expect(Array.isArray(response.body.data)).toBe(true);
+    expectPaginationMeta(response.body.meta, 1, 10);
 
     for (const invoice of response.body.data) {
       expect(invoice).toEqual(
@@ -43,6 +54,7 @@ describe('GET /api/invoices', () => {
     expect(response.status).toBe(200);
     expect(response.body.status).toBe('success');
     expect(Array.isArray(response.body.data)).toBe(true);
+    expectPaginationMeta(response.body.meta, 1, 10);
 
     for (const invoice of response.body.data) {
       expect(invoice.status).toBe('PENDING');
@@ -60,6 +72,7 @@ describe('GET /api/invoices', () => {
     expect(response.status).toBe(200);
     expect(response.body.status).toBe('success');
     expect(Array.isArray(response.body.data)).toBe(true);
+    expectPaginationMeta(response.body.meta, 1, 10);
 
     const fromMs = new Date(from).getTime();
     const toMs = new Date(to).getTime();
@@ -82,6 +95,7 @@ describe('GET /api/invoices', () => {
     expect(response.status).toBe(200);
     expect(response.body.status).toBe('success');
     expect(Array.isArray(response.body.data)).toBe(true);
+    expectPaginationMeta(response.body.meta, 1, 10);
 
     const fromMs = new Date(from).getTime();
     const toMs = new Date(to).getTime();
@@ -151,6 +165,48 @@ describe('GET /api/invoices', () => {
       error: {
         code: 'BAD_REQUEST',
         message: 'From date must be before to date',
+      },
+    });
+  });
+
+  it('supports pagination query params', async () => {
+    const response = await request(app)
+      .get('/api/invoices')
+      .query({ page: '2', limit: '3' });
+
+    expect(response.status).toBe(200);
+    expect(response.body.status).toBe('success');
+    expect(Array.isArray(response.body.data)).toBe(true);
+    expect(response.body.data.length).toBeLessThanOrEqual(3);
+    expectPaginationMeta(response.body.meta, 2, 3);
+  });
+
+  it('returns 400 for non-integer page', async () => {
+    const response = await request(app)
+      .get('/api/invoices')
+      .query({ page: 'abc' });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      status: 'error',
+      error: {
+        code: 'BAD_REQUEST',
+        message: 'Page must be a positive integer',
+      },
+    });
+  });
+
+  it('returns 400 for non-integer limit', async () => {
+    const response = await request(app)
+      .get('/api/invoices')
+      .query({ limit: 'abc' });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      status: 'error',
+      error: {
+        code: 'BAD_REQUEST',
+        message: 'Limit must be an integer between 1 and 100',
       },
     });
   });

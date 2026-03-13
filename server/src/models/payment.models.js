@@ -1,9 +1,15 @@
 import prisma from '../config/prisma.js';
 
-const getPayments = async (invoice_id, tx = prisma) => {
+const getPayments = async (invoice_id, page, limit, tx = prisma) => {
   let where = {};
   if (invoice_id) {
     where.invoice_id = invoice_id;
+  }
+  let skip = undefined;
+  let take = undefined;
+  if (page && limit && page > 0 && limit > 0) {
+    skip = (page - 1) * limit;
+    take = limit;
   }
   const payments = await tx.payments.findMany({
     where,
@@ -14,8 +20,16 @@ const getPayments = async (invoice_id, tx = prisma) => {
         },
       },
     },
+    skip,
+    take,
+    orderBy: {
+      paid_at: 'desc',
+    },
   });
-  return payments;
+  const total = await tx.payments.count({
+    where,
+  });
+  return { payments, total };
 };
 
 const createPayment = async (invoice_id, amount, tx = prisma) => {

@@ -143,7 +143,8 @@ describe('PATCH /api/invoices/:id/status', () => {
       status: 'error',
       error: {
         code: 'BAD_REQUEST',
-        message: 'Invoice is not in DRAFT or PENDING status, current status is PAID',
+        message:
+          'Invoice is not in DRAFT or PENDING status, current status is PAID',
       },
     });
   });
@@ -166,7 +167,10 @@ describe('PATCH /api/invoices/:id/status', () => {
   });
 
   it('returns 400 when pending invoice has payments and target status is VOID', async () => {
-    const invoice = await createInvoiceWithState({ status: 'PENDING', amount: 100 });
+    const invoice = await createInvoiceWithState({
+      status: 'PENDING',
+      amount: 100,
+    });
 
     await prisma.payments.create({
       data: {
@@ -194,8 +198,12 @@ describe('PATCH /api/invoices/:id/status', () => {
     const invoice = await createInvoiceWithState({ status: 'PENDING' });
 
     const [res1, res2] = await Promise.all([
-      request(app).patch(`/api/invoices/${invoice.id}/status`).send({ status: 'VOID' }),
-      request(app).patch(`/api/invoices/${invoice.id}/status`).send({ status: 'VOID' }),
+      request(app)
+        .patch(`/api/invoices/${invoice.id}/status`)
+        .send({ status: 'VOID' }),
+      request(app)
+        .patch(`/api/invoices/${invoice.id}/status`)
+        .send({ status: 'VOID' }),
     ]);
 
     expect([res1.status, res2.status].sort()).toEqual([200, 400]);
@@ -208,11 +216,18 @@ describe('PATCH /api/invoices/:id/status', () => {
   });
 
   it('keeps status/payment invariants when VOID and payment requests race', async () => {
-    const invoice = await createInvoiceWithState({ status: 'PENDING', amount: 100 });
+    const invoice = await createInvoiceWithState({
+      status: 'PENDING',
+      amount: 100,
+    });
 
     const [voidRes, paymentRes] = await Promise.all([
-      request(app).patch(`/api/invoices/${invoice.id}/status`).send({ status: 'VOID' }),
-      request(app).post(`/api/invoices/${invoice.id}/payments`).send({ amount: '10' }),
+      request(app)
+        .patch(`/api/invoices/${invoice.id}/status`)
+        .send({ status: 'VOID' }),
+      request(app)
+        .post(`/api/invoices/${invoice.id}/payments`)
+        .send({ amount: '10' }),
     ]);
 
     expect([voidRes.status, paymentRes.status].sort()).toEqual([200, 400]);
