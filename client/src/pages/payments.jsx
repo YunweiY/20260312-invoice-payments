@@ -15,6 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { CopyText } from '@/components/common/copy-text';
 
 export default function PaymentsPage() {
   const [payments, setPayments] = useState([]);
@@ -80,8 +81,12 @@ export default function PaymentsPage() {
                 <TableBody>
                   {payments.map((payment) => (
                     <TableRow key={payment.id}>
-                      <TableCell>{payment.id}</TableCell>
-                      <TableCell>{payment.invoice_id}</TableCell>
+                      <TableCell>
+                        <CopyText text={payment.id} />
+                      </TableCell>
+                      <TableCell>
+                        <CopyText text={payment.invoice_id} />
+                      </TableCell>
                       <TableCell>
                         {Number(payment.amount).toLocaleString()}{' '}
                         {payment.invoice.currency}

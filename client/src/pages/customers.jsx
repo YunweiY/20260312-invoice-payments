@@ -26,6 +26,7 @@ import {
   SelectItem,
 } from '@/components/ui/select';
 import { DatePicker } from '@/components/common/date-picker';
+import { CopyText } from '@/components/common/copy-text';
 
 export default function CustomersPage() {
   const [customers, setCustomers] = useState([]);
@@ -140,7 +141,9 @@ export default function CustomersPage() {
                         loadInvoicesByCustomerId(customer.id);
                       }}
                     >
-                      <TableCell>{customer.id}</TableCell>
+                      <TableCell>
+                        <CopyText text={customer.id} />
+                      </TableCell>
                       <TableCell>{customer.name}</TableCell>
                     </TableRow>
                   ))}
@@ -244,7 +247,9 @@ export default function CustomersPage() {
                 <TableBody>
                   {invoices.map((invoice) => (
                     <TableRow key={invoice.id}>
-                      <TableCell>{invoice.id}</TableCell>
+                      <TableCell>
+                        <CopyText text={invoice.id} />
+                      </TableCell>
                       <TableCell>
                         {invoice.amount.toLocaleString()} {invoice.currency}
                       </TableCell>

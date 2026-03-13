@@ -26,6 +26,7 @@ import { DatePicker } from '@/components/common/date-picker';
 import { Label } from '@/components/ui/label';
 import { SimpleSheet } from '@/components/common/simple-sheet';
 import { InvoiceForm } from '@/components/invoices/invoice-form';
+import { CopyText } from '@/components/common/copy-text';
 
 export default function InvoicesPage() {
   const [invoices, setInvoices] = useState([]);
@@ -206,7 +207,9 @@ export default function InvoicesPage() {
                       key={invoice.id}
                       onClick={() => loadInvoiceById(invoice.id)}
                     >
-                      <TableCell>{invoice.id}</TableCell>
+                      <TableCell>
+                        <CopyText text={invoice.id} />
+                      </TableCell>
                       <TableCell>{invoice.customer.name}</TableCell>
                       <TableCell>
                         {invoice.amount.toLocaleString()} {invoice.currency}
@@ -276,7 +279,7 @@ export default function InvoicesPage() {
               {/* basic information */}
               <div className="flex flex-row gap-2">
                 <p className="font-medium">Invoice ID: </p>
-                <p>{invoice.id}</p>
+                <CopyText text={invoice.id} />
               </div>
               <div className="flex flex-row gap-2">
                 <p className="font-medium">Customer: </p>
