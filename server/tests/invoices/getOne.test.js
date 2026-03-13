@@ -32,6 +32,7 @@ describe('GET /api/invoices/:id', () => {
         status: expect.any(String),
         customer: expect.any(Object),
         payments: expect.any(Array),
+        remaining_amount: expect.any(String),
       })
     );
   });

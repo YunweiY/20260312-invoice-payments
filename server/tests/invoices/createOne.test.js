@@ -30,7 +30,7 @@ describe('POST /api/invoices', () => {
 
     const payload = {
       customer_id: customerId,
-      amount: 100,
+      amount: '100',
       currency: 'USD',
       due_at: buildFutureISODate(10),
     };
@@ -72,7 +72,7 @@ describe('POST /api/invoices', () => {
       .post('/api/invoices')
       .send({
         customer_id: '123',
-        amount: 100,
+        amount: '100',
         currency: 'USD',
         due_at: buildFutureISODate(10),
       });
@@ -94,7 +94,7 @@ describe('POST /api/invoices', () => {
       .post('/api/invoices')
       .send({
         customer_id: customerId,
-        amount: 100,
+        amount: '100',
         currency: 'USDT',
         due_at: buildFutureISODate(10),
       });
@@ -114,7 +114,7 @@ describe('POST /api/invoices', () => {
 
     const response = await request(app).post('/api/invoices').send({
       customer_id: customerId,
-      amount: 100,
+      amount: '100',
       currency: 'USD',
       due_at: '2026-13-40',
     });
@@ -136,7 +136,7 @@ describe('POST /api/invoices', () => {
       .post('/api/invoices')
       .send({
         customer_id: customerId,
-        amount: 0,
+        amount: '0',
         currency: 'USD',
         due_at: buildFutureISODate(10),
       });
@@ -158,7 +158,7 @@ describe('POST /api/invoices', () => {
       .post('/api/invoices')
       .send({
         customer_id: customerId,
-        amount: 100,
+        amount: '100',
         currency: 'USD',
         due_at: new Date('2000-01-01T00:00:00.000Z').toISOString(),
       });
@@ -178,7 +178,7 @@ describe('POST /api/invoices', () => {
       .post('/api/invoices')
       .send({
         customer_id: '00000000-0000-0000-0000-000000000000',
-        amount: 100,
+        amount: '100',
         currency: 'USD',
         due_at: buildFutureISODate(10),
       });
@@ -189,6 +189,28 @@ describe('POST /api/invoices', () => {
       error: {
         code: 'NOT_FOUND',
         message: 'Customer not found',
+      },
+    });
+  });
+
+  it('returns 400 when amount format is invalid', async () => {
+    const customerId = await getValidCustomerId();
+
+    const response = await request(app)
+      .post('/api/invoices')
+      .send({
+        customer_id: customerId,
+        amount: '100.123',
+        currency: 'USD',
+        due_at: buildFutureISODate(10),
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      status: 'error',
+      error: {
+        code: 'BAD_REQUEST',
+        message: 'Amount must be a decimal string with up to 2 decimal places',
       },
     });
   });

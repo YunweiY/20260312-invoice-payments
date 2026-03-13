@@ -2,6 +2,7 @@ import validator from 'validator';
 import * as invoiceService from '../services/invoice.services.js';
 import { BadRequestError } from '../errors/AppError.js';
 import { validateInvoiceStatus } from '../utils/validateInvoiceStatus.js';
+import { isValidAmountString } from '../utils/validateAmountString.js';
 
 const getInvoicesController = async (req, res, next) => {
   try {
@@ -102,6 +103,13 @@ const createInvoiceController = async (req, res, next) => {
       );
     }
 
+    if (!isValidAmountString(amount)) {
+      throw BadRequestError(
+        'Amount must be a decimal string with up to 2 decimal places',
+        'BAD_REQUEST'
+      );
+    }
+
     const invoice = await invoiceService.createInvoiceService(
       customer_id,
       amount,
@@ -134,6 +142,12 @@ const payInvoiceController = async (req, res, next) => {
     // validate amount
     if (amount === undefined || amount === null) {
       throw BadRequestError('Amount is required', 'BAD_REQUEST');
+    }
+    if (!isValidAmountString(amount)) {
+      throw BadRequestError(
+        'Amount must be a decimal string with up to 2 decimal places',
+        'BAD_REQUEST'
+      );
     }
 
     const payment = await invoiceService.payInvoiceService(id, amount);

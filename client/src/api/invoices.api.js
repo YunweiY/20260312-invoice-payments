@@ -19,7 +19,7 @@ export const getInvoiceById = async (id) => {
 export const createInvoice = async (customer_id, amount, currency, due_at) => {
   const response = await apiClient.post('/invoices', {
     customer_id,
-    amount: parseFloat(amount),
+    amount: String(amount),
     currency,
     due_at,
   });

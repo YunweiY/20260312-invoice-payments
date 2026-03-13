@@ -41,7 +41,7 @@ describe('POST /api/invoices/:id/payments', () => {
 
     const response = await request(app)
       .post(`/api/invoices/${invoice.id}/payments`)
-      .send({ amount: 40 });
+      .send({ amount: '40' });
 
     expect(response.status).toBe(200);
     expect(response.body.status).toBe('success');
@@ -71,7 +71,7 @@ describe('POST /api/invoices/:id/payments', () => {
 
     const response = await request(app)
       .post(`/api/invoices/${invoice.id}/payments`)
-      .send({ amount: 100 });
+      .send({ amount: '100' });
 
     expect(response.status).toBe(200);
     expect(response.body.status).toBe('success');
@@ -86,7 +86,7 @@ describe('POST /api/invoices/:id/payments', () => {
   it('returns 400 when invoice id is not a valid UUID', async () => {
     const response = await request(app)
       .post('/api/invoices/not-a-uuid/payments')
-      .send({ amount: 10 });
+      .send({ amount: '10' });
 
     expect(response.status).toBe(400);
     expect(response.body).toEqual({
@@ -141,7 +141,7 @@ describe('POST /api/invoices/:id/payments', () => {
   it('returns 404 when invoice does not exist', async () => {
     const response = await request(app)
       .post(`/api/invoices/${NON_EXISTENT_INVOICE_ID}/payments`)
-      .send({ amount: 10 });
+      .send({ amount: '10' });
 
     expect(response.status).toBe(404);
     expect(response.body).toEqual({
@@ -161,7 +161,7 @@ describe('POST /api/invoices/:id/payments', () => {
 
     const response = await request(app)
       .post(`/api/invoices/${invoice.id}/payments`)
-      .send({ amount: 0 });
+      .send({ amount: '0' });
 
     expect(response.status).toBe(400);
     expect(response.body).toEqual({
@@ -181,7 +181,7 @@ describe('POST /api/invoices/:id/payments', () => {
 
     const response = await request(app)
       .post(`/api/invoices/${invoice.id}/payments`)
-      .send({ amount: 10 });
+      .send({ amount: '10' });
 
     expect(response.status).toBe(400);
     expect(response.body).toEqual({
@@ -209,7 +209,7 @@ describe('POST /api/invoices/:id/payments', () => {
 
     const response = await request(app)
       .post(`/api/invoices/${invoice.id}/payments`)
-      .send({ amount: 80 });
+      .send({ amount: '80' });
 
     expect(response.status).toBe(400);
     expect(response.body).toEqual({
@@ -217,7 +217,27 @@ describe('POST /api/invoices/:id/payments', () => {
       error: {
         code: 'BAD_REQUEST',
         message:
-          'Amount is greater than the remaining unpaid amount, remaining amount is 70',
+          'Amount is greater than the remaining unpaid amount, remaining amount is 70.00',
+      },
+    });
+  });
+
+  it('returns 400 when amount format is invalid', async () => {
+    const invoice = await createInvoiceWithState({
+      status: 'PENDING',
+      amount: 100,
+    });
+
+    const response = await request(app)
+      .post(`/api/invoices/${invoice.id}/payments`)
+      .send({ amount: '1.234' });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      status: 'error',
+      error: {
+        code: 'BAD_REQUEST',
+        message: 'Amount must be a decimal string with up to 2 decimal places',
       },
     });
   });

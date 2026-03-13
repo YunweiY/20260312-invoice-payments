@@ -32,19 +32,26 @@ const getInvoicesService = async (status, from, to) => {
 
 const getInvoiceByIdService = async (id) => {
   const invoice = await invoiceModel.getInvoiceById(id);
-  const payments = await paymentModel.getPayments(id);
-  const remainingAmount =
-    Number(invoice.amount) -
-    payments.reduce((acc, payment) => acc + Number(payment.amount), 0);
   if (!invoice) {
     throw NotFoundError('Invoice not found', 'NOT_FOUND');
   }
-  return { ...invoice, remaining_amount: remainingAmount };
+
+  const payments = await paymentModel.getPayments(id);
+  const invoiceAmount = new Prisma.Decimal(invoice.amount);
+  const totalPaid = payments.reduce(
+    (acc, payment) => acc.plus(new Prisma.Decimal(payment.amount)),
+    new Prisma.Decimal(0)
+  );
+  const remainingAmount = invoiceAmount.minus(totalPaid);
+
+  return { ...invoice, remaining_amount: remainingAmount.toFixed(2) };
 };
 
 const createInvoiceService = async (customer_id, amount, currency, due_at) => {
-  // validate whether amount is a positive number
-  if (typeof amount !== 'number' || amount <= 0) {
+  const invoiceAmount = new Prisma.Decimal(amount);
+
+  // validate whether amount is a positive decimal
+  if (invoiceAmount.lte(0)) {
     throw BadRequestError('Amount must be a positive number', 'BAD_REQUEST');
   }
 
@@ -62,7 +69,7 @@ const createInvoiceService = async (customer_id, amount, currency, due_at) => {
 
   const invoice = await invoiceModel.createInvoice(
     customer_id,
-    amount,
+    invoiceAmount,
     currency,
     dueDate
   );
@@ -70,7 +77,9 @@ const createInvoiceService = async (customer_id, amount, currency, due_at) => {
 };
 
 const payInvoiceService = async (id, amount) => {
-  if (typeof amount !== 'number' || amount <= 0) {
+  const reqAmount = new Prisma.Decimal(amount);
+
+  if (reqAmount.lte(0)) {
     throw BadRequestError('Amount must be a positive number', 'BAD_REQUEST');
   }
 
@@ -98,7 +107,6 @@ const payInvoiceService = async (id, amount) => {
 
     // calculate the total paid amount
     // must use decimal to avoid floating point precision issues
-    const reqAmount = new Prisma.Decimal(amount);
     const invoiceAmount = new Prisma.Decimal(invoice[0].amount);
     const totalPaid = payments.reduce(
       (acc, p) => acc.plus(new Prisma.Decimal(p.amount)),
@@ -109,17 +117,17 @@ const payInvoiceService = async (id, amount) => {
     if (reqAmount.gt(remainingAmount)) {
       // if the amount is greater than the remaining unpaid amount, throw an error
       throw BadRequestError(
-        `Amount is greater than the remaining unpaid amount, remaining amount is ${remainingAmount}`,
+        `Amount is greater than the remaining unpaid amount, remaining amount is ${remainingAmount.toFixed(2)}`,
         'BAD_REQUEST'
       );
     } else if (reqAmount.equals(remainingAmount)) {
       // if the amount is equal to the remaining unpaid amount, update the invoice status to PAID and create a payment
       await invoiceModel.updateInvoice(id, { status: 'PAID' }, tx);
-      const payment = await paymentModel.createPayment(id, amount, tx);
+      const payment = await paymentModel.createPayment(id, reqAmount, tx);
       return payment;
     } else {
       // if the amount is less than the remaining unpaid amount, only create the payment
-      const payment = await paymentModel.createPayment(id, amount, tx);
+      const payment = await paymentModel.createPayment(id, reqAmount, tx);
       return payment;
     }
   });

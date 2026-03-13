@@ -7,7 +7,7 @@ export const getAllPayments = async () => {
 
 export const createPayment = async (invoice_id, amount) => {
   const response = await apiClient.post(`/invoices/${invoice_id}/payments`, {
-    amount: parseFloat(amount),
+    amount: String(amount),
   });
   return response.data.data;
 };
