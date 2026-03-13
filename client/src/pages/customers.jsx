@@ -48,13 +48,21 @@ export default function CustomersPage() {
     const nextFromDate =
       filters.fromDate !== undefined ? filters.fromDate : fromDate;
     const nextToDate = filters.toDate !== undefined ? filters.toDate : toDate;
-    const data = await getCustomerInvoices(
-      selectedCustomer.id,
-      nextStatus,
-      nextFromDate,
-      nextToDate
-    );
-    setInvoices(data);
+    setIsSheetLoading(true);
+    setSheetError(null);
+    try {
+      const data = await getCustomerInvoices(
+        selectedCustomer.id,
+        nextStatus,
+        nextFromDate,
+        nextToDate
+      );
+      setInvoices(data);
+    } catch (error) {
+      setSheetError(error);
+    } finally {
+      setIsSheetLoading(false);
+    }
   }
 
   function resetFilters() {
@@ -174,6 +182,17 @@ export default function CustomersPage() {
             <p className="text-red-600 text-center text-lg font-medium">
               {sheetError?.response?.data?.error?.message || sheetError.message}
             </p>
+            <div className="flex flex-row gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  loadInvoicesByCustomerId(selectedCustomer.id);
+                }}
+              >
+                Try Again
+              </Button>
+              <Button onClick={() => resetFilters()}>Reset Filters</Button>
+            </div>
           </div>
         ) : (
           <div className="flex flex-col gap-2 p-4">
