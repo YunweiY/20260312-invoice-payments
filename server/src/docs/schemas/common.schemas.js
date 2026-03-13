@@ -1,4 +1,14 @@
 const commonSchemas = {
+  PaginationMeta: {
+    type: 'object',
+    properties: {
+      total: { type: 'integer', example: 42 },
+      totalPages: { type: 'integer', example: 5 },
+      currentPage: { type: 'integer', example: 1 },
+      limit: { type: 'integer', example: 10 },
+    },
+    required: ['total', 'totalPages', 'currentPage', 'limit'],
+  },
   SuccessResponse: {
     type: 'object',
     properties: {

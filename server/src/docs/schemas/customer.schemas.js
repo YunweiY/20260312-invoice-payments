@@ -15,8 +15,9 @@ const customerSchemas = {
         type: 'array',
         items: { $ref: '#/components/schemas/CustomerSummary' },
       },
+      meta: { $ref: '#/components/schemas/PaginationMeta' },
     },
-    required: ['status', 'data'],
+    required: ['status', 'data', 'meta'],
   },
   CustomerInvoicesResponse: {
     type: 'object',
@@ -26,8 +27,9 @@ const customerSchemas = {
         type: 'array',
         items: { $ref: '#/components/schemas/InvoiceListItem' },
       },
+      meta: { $ref: '#/components/schemas/PaginationMeta' },
     },
-    required: ['status', 'data'],
+    required: ['status', 'data', 'meta'],
   },
 };
 

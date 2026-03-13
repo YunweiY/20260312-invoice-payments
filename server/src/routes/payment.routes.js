@@ -10,6 +10,21 @@ const router = express.Router();
  *     tags:
  *       - Payments
  *     summary: List all payments
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         description: Page number (1-based)
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         description: Items per page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 10
  *     responses:
  *       200:
  *         description: Payments returned successfully

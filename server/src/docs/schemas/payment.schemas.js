@@ -24,8 +24,9 @@ const paymentSchemas = {
         type: 'array',
         items: { $ref: '#/components/schemas/PaymentsListItem' },
       },
+      meta: { $ref: '#/components/schemas/PaginationMeta' },
     },
-    required: ['status', 'data'],
+    required: ['status', 'data', 'meta'],
   },
 };
 
