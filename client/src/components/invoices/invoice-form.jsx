@@ -127,8 +127,14 @@ export function InvoiceForm({ open, setOpen, onSuccessSubmit }) {
         if (!nextOpen) clearForm();
       }}
     >
-      <form>
-        <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg">
+        <form
+          className="flex flex-col gap-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            handleSubmit();
+          }}
+        >
           <DialogHeader>
             <DialogTitle>Create Invoice</DialogTitle>
             <DialogDescription>
@@ -228,7 +234,7 @@ export function InvoiceForm({ open, setOpen, onSuccessSubmit }) {
             </DialogClose>
             {/* Submit Button with Hover Card about invalid reasons*/}
             {/* not using Tooltip because it has to be configured at the root level of the app */}
-            {invalidReasons.length > 0 ? (
+            {open && !isFormSubmitting && invalidReasons.length > 0 ? (
               <HoverCard openDelay={10} closeDelay={100}>
                 <HoverCardTrigger asChild>
                   <span className="inline-block">
@@ -246,17 +252,13 @@ export function InvoiceForm({ open, setOpen, onSuccessSubmit }) {
                 </HoverCardContent>
               </HoverCard>
             ) : (
-              <Button
-                type="submit"
-                disabled={isFormSubmitting}
-                onClick={handleSubmit}
-              >
+              <Button type="submit" disabled={isFormSubmitting}>
                 Create Invoice
               </Button>
             )}
           </DialogFooter>
-        </DialogContent>
-      </form>
+        </form>
+      </DialogContent>
     </Dialog>
   );
 }
