@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import * as invoiceModel from '../models/invoice.models.js';
 import * as customerModel from '../models/customer.models.js';
 import * as paymentModel from '../models/payment.models.js';
@@ -31,10 +32,14 @@ const getInvoicesService = async (status, from, to) => {
 
 const getInvoiceByIdService = async (id) => {
   const invoice = await invoiceModel.getInvoiceById(id);
+  const payments = await paymentModel.getPayments(id);
+  const remainingAmount =
+    Number(invoice.amount) -
+    payments.reduce((acc, payment) => acc + Number(payment.amount), 0);
   if (!invoice) {
     throw NotFoundError('Invoice not found', 'NOT_FOUND');
   }
-  return invoice;
+  return { ...invoice, remaining_amount: remainingAmount };
 };
 
 const createInvoiceService = async (customer_id, amount, currency, due_at) => {
@@ -92,19 +97,22 @@ const payInvoiceService = async (id, amount) => {
     const payments = await paymentModel.getPayments(id, tx);
 
     // calculate the total paid amount
+    // must use decimal to avoid floating point precision issues
+    const reqAmount = new Prisma.Decimal(amount);
+    const invoiceAmount = new Prisma.Decimal(invoice[0].amount);
     const totalPaid = payments.reduce(
-      (acc, payment) => acc + Number(payment.amount),
-      0
+      (acc, p) => acc.plus(new Prisma.Decimal(p.amount)),
+      new Prisma.Decimal(0)
     );
-    const remainingAmount = Number(invoice[0].amount) - totalPaid;
+    const remainingAmount = invoiceAmount.minus(totalPaid);
 
-    if (amount > remainingAmount) {
+    if (reqAmount.gt(remainingAmount)) {
       // if the amount is greater than the remaining unpaid amount, throw an error
       throw BadRequestError(
         `Amount is greater than the remaining unpaid amount, remaining amount is ${remainingAmount}`,
         'BAD_REQUEST'
       );
-    } else if (Number(amount) === remainingAmount) {
+    } else if (reqAmount.equals(remainingAmount)) {
       // if the amount is equal to the remaining unpaid amount, update the invoice status to PAID and create a payment
       await invoiceModel.updateInvoice(id, { status: 'PAID' }, tx);
       const payment = await paymentModel.createPayment(id, amount, tx);

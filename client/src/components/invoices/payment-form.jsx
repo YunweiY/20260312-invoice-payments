@@ -12,7 +12,6 @@ import {
 import { Field, FieldGroup } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { DatePicker } from '@/components/common/date-picker';
 import {
   Select,
   SelectTrigger,
@@ -20,8 +19,7 @@ import {
   SelectContent,
   SelectItem,
 } from '@/components/ui/select';
-import { getAllCustomers } from '@/api/customers.api';
-import { createInvoice } from '@/api/invoices.api';
+import { createPayment } from '@/api/payments.api';
 import { AlertTriangleIcon } from 'lucide-react';
 import {
   HoverCard,
@@ -30,15 +28,8 @@ import {
 } from '@/components/ui/hover-card';
 import { toast } from 'sonner';
 
-export function InvoiceForm({ open, setOpen, onSuccessSubmit }) {
-  const [customers, setCustomers] = useState([]);
-  const [_isLoading, setIsLoading] = useState(false);
-  const [_loadError, setLoadError] = useState(null);
-
-  const [customerId, setCustomerId] = useState(null);
+export function PaymentForm({ invoice, open, setOpen, onSuccessSubmit }) {
   const [amount, setAmount] = useState(0);
-  const [currency, setCurrency] = useState('USD');
-  const [dueAt, setDueAt] = useState(undefined);
 
   const [invalidReasons, setInvalidReasons] = useState([]);
   const [_isSubmitButtonEnabled, setIsSubmitButtonEnabled] = useState(false);
@@ -49,15 +40,10 @@ export function InvoiceForm({ open, setOpen, onSuccessSubmit }) {
     setSubmitError(null);
     setIsFormSubmitting(true);
     try {
-      await createInvoice(
-        customerId,
-        amount,
-        currency,
-        new Date(dueAt).toISOString()
-      );
+      await createPayment(invoice.id, amount);
       clearForm();
       setOpen(false);
-      toast.success('Invoice created successfully');
+      toast.success('Payment created successfully');
       onSuccessSubmit();
     } catch (error) {
       setSubmitError(error?.response?.data?.error?.message || error.message);
@@ -67,57 +53,31 @@ export function InvoiceForm({ open, setOpen, onSuccessSubmit }) {
     }
   }
 
-  async function loadCustomers() {
-    setIsLoading(true);
-    setLoadError(null);
-    setCustomers([{ id: 'initial', name: 'Loading customers...' }]);
-    getAllCustomers()
-      .then((data) => {
-        setCustomers(data);
-      })
-      .catch((error) => {
-        setLoadError(error);
-        setCustomers([{ id: 'error', name: 'Error loading customers' }]);
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
-  }
-
   async function clearForm() {
-    setCustomerId(null);
     setAmount(0);
-    setCurrency('USD');
-    setDueAt(undefined);
     setSubmitError(null);
     setInvalidReasons([]);
   }
 
-  useEffect(() => {
-    loadCustomers();
-  }, []);
-
   const isFormValid = useMemo(() => {
-    const isDateValid = dueAt && dueAt > new Date();
-    // convert the amount to a number to avoid floating point precision issues
+    // convert the amount and remaining amount to cents to avoid floating point precision issues
+    const toCents = (v) => Math.round(Number(v) * 100);
     const amountNum = Number(amount);
-    const isAmountValid = Number.isFinite(amountNum) && amountNum > 0;
-    const isCurrencyValid =
-      currency && ['CAD', 'USD', 'EUR', 'GBP', 'JPY', 'CNY'].includes(currency);
-    const isCustomerValid =
-      customerId &&
-      customers.some((customer) => customer.id === customerId) &&
-      customerId !== 'initial' &&
-      customerId !== 'error';
+    const remainingNum = Number(invoice?.remaining_amount);
+    const isAmountValid =
+      Number.isFinite(amountNum) &&
+      Number.isFinite(remainingNum) &&
+      toCents(amountNum) > 0 &&
+      toCents(amountNum) <= toCents(remainingNum);
+
     const reasons = [];
-    if (!isDateValid) reasons.push('Due date must be in the future');
-    if (!isCurrencyValid)
-      reasons.push('Currency must be a valid ISO 4217 currency code');
-    if (!isCustomerValid) reasons.push('Customer must be selected');
-    if (!isAmountValid) reasons.push('Amount must be a positive number');
+    if (!isAmountValid)
+      reasons.push(
+        'Amount must be a positive number and less than or equal to the outstanding amount'
+      );
     setInvalidReasons(reasons);
-    return isDateValid && isCurrencyValid && isCustomerValid && isAmountValid;
-  }, [dueAt, amount, currency, customerId, customers]);
+    return isAmountValid;
+  }, [amount, invoice?.remaining_amount]);
 
   useEffect(() => {
     setIsSubmitButtonEnabled(isFormValid);
@@ -140,46 +100,12 @@ export function InvoiceForm({ open, setOpen, onSuccessSubmit }) {
           }}
         >
           <DialogHeader>
-            <DialogTitle>Create Invoice</DialogTitle>
+            <DialogTitle>Create Payment</DialogTitle>
             <DialogDescription>
-              Create a new invoice for a customer.
+              Create a new payment for the selected invoice.
             </DialogDescription>
           </DialogHeader>
           <FieldGroup className="flex flex-col gap-4">
-            <div className="flex flex-row gap-2">
-              {/* Customer Select */}
-              <Field>
-                <Label htmlFor="name-1">Customer</Label>
-                <Select
-                  id="customer_id"
-                  name="customer_id"
-                  value={customerId}
-                  onValueChange={setCustomerId}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a customer" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {customers.map((customer) => (
-                      <SelectItem key={customer.id} value={customer.id}>
-                        {customer.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Field>
-              {/* Due At Date Picker */}
-              <Field>
-                <Label htmlFor="due_at">Due At</Label>
-                <DatePicker
-                  id="due_at"
-                  name="due_at"
-                  value={dueAt}
-                  setValue={setDueAt}
-                  minDate={new Date()}
-                />
-              </Field>
-            </div>
             <div className="flex flex-row gap-2">
               {/* Amount Input */}
               <Field>
@@ -188,7 +114,6 @@ export function InvoiceForm({ open, setOpen, onSuccessSubmit }) {
                   id="amount"
                   name="amount"
                   type="number"
-                  min={0}
                   step="0.01"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
@@ -202,10 +127,14 @@ export function InvoiceForm({ open, setOpen, onSuccessSubmit }) {
                       decPart !== undefined
                         ? `${normalizedInt}.${decPart}`
                         : normalizedInt;
-
                     setAmount(normalized);
                   }}
                 />
+                <p className="text-sm text-gray-500">
+                  Outstanding Amount:{' '}
+                  {Number(invoice?.remaining_amount).toLocaleString()}{' '}
+                  {invoice?.currency}
+                </p>
               </Field>
               {/* Currency Select */}
               <Field>
@@ -213,8 +142,8 @@ export function InvoiceForm({ open, setOpen, onSuccessSubmit }) {
                 <Select
                   id="currency"
                   name="currency"
-                  value={currency}
-                  onValueChange={setCurrency}
+                  value={invoice?.currency || 'USD'}
+                  disabled
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select a currency" />
@@ -257,7 +186,7 @@ export function InvoiceForm({ open, setOpen, onSuccessSubmit }) {
                 <HoverCardTrigger asChild>
                   <span className="inline-block">
                     <Button type="submit" disabled>
-                      Create Invoice
+                      Create Payment
                     </Button>
                   </span>
                 </HoverCardTrigger>
@@ -271,7 +200,7 @@ export function InvoiceForm({ open, setOpen, onSuccessSubmit }) {
               </HoverCard>
             ) : (
               <Button type="submit" disabled={isFormSubmitting}>
-                Create Invoice
+                Create Payment
               </Button>
             )}
           </DialogFooter>

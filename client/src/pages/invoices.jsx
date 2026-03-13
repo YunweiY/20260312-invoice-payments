@@ -27,6 +27,7 @@ import { Label } from '@/components/ui/label';
 import { SimpleSheet } from '@/components/common/simple-sheet';
 import { InvoiceForm } from '@/components/invoices/invoice-form';
 import { CopyText } from '@/components/common/copy-text';
+import { PaymentForm } from '@/components/invoices/payment-form';
 
 export default function InvoicesPage() {
   const [invoices, setInvoices] = useState([]);
@@ -43,6 +44,8 @@ export default function InvoicesPage() {
   const [invoice, setInvoice] = useState(null);
 
   const [isFormOpen, setIsFormOpen] = useState(false);
+
+  const [isPaymentFormOpen, setIsPaymentFormOpen] = useState(false);
 
   async function loadInvoices(filters = {}) {
     // Use undefined instead of ?? to check the filter values so we can pass null to reset filters
@@ -72,10 +75,6 @@ export default function InvoicesPage() {
     setIsSheetLoading(true);
     setSheetError(null);
     setIsSheetOpen(true);
-    if (invoice && invoice.id === id) {
-      setIsSheetLoading(false);
-      return;
-    }
     try {
       const data = await getInvoiceById(id);
       setInvoice(data);
@@ -207,7 +206,8 @@ export default function InvoicesPage() {
                       </TableCell>
                       <TableCell>{invoice.customer.name}</TableCell>
                       <TableCell>
-                        {invoice.amount.toLocaleString()} {invoice.currency}
+                        {Number(invoice.amount).toLocaleString()}{' '}
+                        {invoice.currency}
                       </TableCell>
                       <TableCell>{statusTag(invoice.status)}</TableCell>
                       <TableCell>
@@ -283,7 +283,14 @@ export default function InvoicesPage() {
               <div className="flex flex-row gap-2">
                 <p className="font-medium">Amount: </p>
                 <p>
-                  {invoice.amount.toLocaleString()} {invoice.currency}
+                  {Number(invoice.amount).toLocaleString()} {invoice.currency}
+                </p>
+              </div>
+              <div className="flex flex-row gap-2">
+                <p className="font-medium">Outstanding Amount: </p>
+                <p>
+                  {Number(invoice.remaining_amount).toLocaleString()}{' '}
+                  {invoice.currency}
                 </p>
               </div>
               <div className="flex flex-row gap-2">
@@ -298,36 +305,48 @@ export default function InvoicesPage() {
                 <p className="font-medium">Due At: </p>
                 <p>{new Date(invoice.due_at).toLocaleDateString()}</p>
               </div>
-              {/* payments table */}
-              {invoice.payments.length > 0 && (
-                <Table className="border">
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Payment ID</TableHead>
-                      <TableHead>Amount</TableHead>
-                      <TableHead>Paid At</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {invoice.payments.map((payment) => (
-                      <TableRow key={payment.id}>
-                        <TableCell>{payment.id}</TableCell>
-                        <TableCell>
-                          {payment.amount.toLocaleString()} {invoice.currency}
-                        </TableCell>
-                        <TableCell>
-                          {new Date(payment.paid_at).toLocaleDateString()}
-                        </TableCell>
+              <div className="flex flex-col gap-2 border rounded-md p-2">
+                {/* actions */}
+                <div className="flex flex-row gap-2 justify-end">
+                  <Button
+                    onClick={() => setIsPaymentFormOpen(true)}
+                    disabled={invoice.status !== 'PENDING'}
+                  >
+                    <PlusIcon className="h-4 w-4" /> Create Payment
+                  </Button>
+                </div>
+                {/* payments table */}
+                {invoice.payments.length > 0 && (
+                  <Table className="border">
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Payment ID</TableHead>
+                        <TableHead>Amount</TableHead>
+                        <TableHead>Paid At</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-              {invoice.payments.length === 0 && (
-                <p className="text-gray-600 text-center text-lg font-medium">
-                  No related payments found
-                </p>
-              )}
+                    </TableHeader>
+                    <TableBody>
+                      {invoice.payments.map((payment) => (
+                        <TableRow key={payment.id}>
+                          <TableCell>{payment.id}</TableCell>
+                          <TableCell>
+                            {Number(payment.amount).toLocaleString()}{' '}
+                            {invoice.currency}
+                          </TableCell>
+                          <TableCell>
+                            {new Date(payment.paid_at).toLocaleDateString()}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+                {invoice.payments.length === 0 && (
+                  <p className="text-gray-600 text-center text-lg font-medium">
+                    No related payments found
+                  </p>
+                )}
+              </div>
             </div>
           )}
         </div>
@@ -336,6 +355,15 @@ export default function InvoicesPage() {
         open={isFormOpen}
         setOpen={setIsFormOpen}
         onSuccessSubmit={() => {
+          runLoad();
+        }}
+      />
+      <PaymentForm
+        invoice={invoice || null}
+        open={isPaymentFormOpen}
+        setOpen={setIsPaymentFormOpen}
+        onSuccessSubmit={() => {
+          loadInvoiceById(invoice.id);
           runLoad();
         }}
       />

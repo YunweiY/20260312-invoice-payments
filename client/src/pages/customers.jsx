@@ -270,7 +270,8 @@ export default function CustomersPage() {
                         <CopyText text={invoice.id} />
                       </TableCell>
                       <TableCell>
-                        {invoice.amount.toLocaleString()} {invoice.currency}
+                        {Number(invoice.amount).toLocaleString()}{' '}
+                        {invoice.currency}
                       </TableCell>
                       <TableCell>{statusTag(invoice.status)}</TableCell>
                       <TableCell>
