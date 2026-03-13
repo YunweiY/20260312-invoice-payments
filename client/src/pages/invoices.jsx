@@ -100,7 +100,13 @@ export default function InvoicesPage() {
           <p className="text-red-600 text-center text-lg font-medium">
             {error.message}
           </p>
-          <Button variant="outline" onClick={loadInvoices}>
+          <Button
+            variant="outline"
+            onClick={() => {
+              loadInvoices();
+              setIsLoading(true);
+            }}
+          >
             Try Again
           </Button>
         </div>
