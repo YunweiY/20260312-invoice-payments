@@ -161,9 +161,42 @@ const payInvoiceController = async (req, res, next) => {
   }
 };
 
+const updateInvoiceStatusController = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body ?? {};
+
+    // validate invoice id
+    if (!id) {
+      throw BadRequestError('Invoice ID is required', 'BAD_REQUEST');
+    }
+    if (!validator.isUUID(id)) {
+      throw BadRequestError('Invoice ID must be a valid UUID', 'BAD_REQUEST');
+    }
+
+    // validate status
+    if (!['PENDING', 'VOID'].includes(status)) {
+      throw BadRequestError(
+        'Target status must be either PENDING or VOID',
+        'BAD_REQUEST'
+      );
+    }
+
+    const invoice = await invoiceService.updateInvoiceStatusService(id, status);
+
+    res.status(200).json({
+      status: 'success',
+      data: invoice,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export {
   getInvoicesController,
   getInvoiceByIdController,
   createInvoiceController,
   payInvoiceController,
+  updateInvoiceStatusController,
 };

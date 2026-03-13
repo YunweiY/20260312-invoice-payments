@@ -132,9 +132,50 @@ const payInvoiceService = async (id, amount) => {
   });
 };
 
+const updateInvoiceStatusService = async (id, status) => {
+  return await prisma.$transaction(async (tx) => {
+    // apply lock to the invoice
+    const invoice =
+      await tx.$queryRaw`SELECT * FROM "Invoices" WHERE id = ${id} FOR UPDATE`;
+
+    // check whether the invoice exists and is in DRAFT or PENDING status
+    if (invoice.length === 0) {
+      throw NotFoundError('Invoice not found', 'NOT_FOUND');
+    }
+    if (invoice[0].status !== 'DRAFT' && invoice[0].status !== 'PENDING') {
+      throw BadRequestError(
+        `Invoice is not in DRAFT or PENDING status, current status is ${invoice[0].status}`,
+        'BAD_REQUEST'
+      );
+    }
+
+    //if current status is DRAFT, update the status directly to the target status
+    if (invoice[0].status === 'DRAFT') {
+      return await invoiceModel.updateInvoice(id, { status }, tx);
+    }
+
+    // if current status is PENDING, check whether the target status is VOID
+    if (status === 'PENDING') {
+      throw BadRequestError(`Invoice is already PENDING`, 'BAD_REQUEST');
+    }
+    // check whether the status has payments
+    const payments = await paymentModel.getPayments(id, tx);
+    if (payments.length > 0) {
+      // if so, throw an error
+      throw BadRequestError(
+        `Invoice has payments and cannot be voided`,
+        'BAD_REQUEST'
+      );
+    }
+    // if not, update the status to the target status
+    return await invoiceModel.updateInvoice(id, { status }, tx);
+  });
+};
+
 export {
   getInvoicesService,
   getInvoiceByIdService,
   createInvoiceService,
   payInvoiceService,
+  updateInvoiceStatusService,
 };

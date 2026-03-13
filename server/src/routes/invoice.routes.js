@@ -7,5 +7,6 @@ router.get('/', invoiceController.getInvoicesController);
 router.get('/:id', invoiceController.getInvoiceByIdController);
 router.post('/', invoiceController.createInvoiceController);
 router.post('/:id/payments', invoiceController.payInvoiceController);
+router.patch('/:id/status', invoiceController.updateInvoiceStatusController);
 
 export default router;

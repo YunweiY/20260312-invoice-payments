@@ -213,6 +213,10 @@ The data model is centered around customers, invoices, and payments.
   - Description: Pay an invoice (full or partial amount).
   - Request body:
     - `amount` (required, decimal string, up to 2 decimal places)
+- `PATCH /invoices/:id/status`
+  - Description: Transition invoice status based on lifecycle rules.
+  - Request body:
+    - `status` (required): `PENDING | VOID`
 
 #### Payments
 
@@ -247,22 +251,18 @@ The backend follows `routes -> controllers -> services -> models` to keep respon
 
 A custom `AppError` abstraction is used to unify error shape, error codes, and HTTP status handling. A global error handler then converts operational errors into consistent API responses with `status`, `error.code`, and `error.message`.
 
-### 4) Invoice lifecycle design (current behavior + intended flow)
+### 4) Invoice lifecycle design
 
-The current implementation and the intended end-state lifecycle are tracked separately.
+New invoices are created as `DRAFT`, and lifecycle changes are controlled by `PATCH /invoices/:id/status` plus payment settlement rules. Payments are only accepted while an invoice is `PENDING`, and `PAID`/`VOID` are terminal statuses kept for historical records.
 
-Current implemented behavior:
+All status transitions:
 
-- New invoices are created as `DRAFT`.
-- Invoice payments are only accepted when status is `PENDING`.
-- When `sum(payments) === invoice.amount`, status transitions to `PAID`.
-
-Intended lifecycle design:
-
-- `DRAFT -> PENDING` after explicit client-side confirmation.
-- `DRAFT -> VOID` is allowed for cancellation before activation.
-- `PENDING -> PAID` when fully settled.
-- `VOID` is terminal (no further transitions), kept for historical records.
+- `DRAFT -> PENDING`
+- `DRAFT -> VOID`
+- `PENDING -> VOID` (only when the invoice has no payments)
+- `PENDING -> PAID` (when `sum(payments) === invoice.amount`)
+- `PAID ->` no further transitions (terminal)
+- `VOID ->` no further transitions (terminal)
 
 ### 5) Currency precision strategy (2-decimal contract)
 
@@ -288,6 +288,7 @@ The current flow assumes invoice currency and payment currency are the same. Thi
   - list invoices with filters (`status`, `from`, `to`)
   - get invoice details
   - create invoice
+  - update invoice status
   - pay invoice (including partial payment and overpay protection)
 - Customer APIs:
   - list invoices by customer with status/date filters
