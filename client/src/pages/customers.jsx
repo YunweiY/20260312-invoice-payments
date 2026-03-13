@@ -196,16 +196,17 @@ export default function CustomersPage() {
             </div>
           </div>
         ) : (
-          <div className="flex flex-col gap-2 p-4">
-            <div className="flex flex-row gap-2">
-              <p className="font-medium">Customer ID:</p>
-              <p>{selectedCustomer?.id}</p>
-            </div>
-            <div className="flex flex-row gap-2">
-              <p className="font-medium">Name:</p>
+          <div className="flex h-full min-h-0 flex-col gap-2 p-4">
+            {/* basic information */}
+            <div className="grid grid-cols-[max-content_1fr] items-start gap-x-3 gap-y-2">
+              <p className="font-medium text-left">Customer ID:</p>
+              <p>
+                <CopyText text={selectedCustomer?.id} />
+              </p>
+              <p className="font-medium text-left">Name:</p>
               <p>{selectedCustomer?.name}</p>
             </div>
-            <div className="flex flex-col gap-2 border p-4 rounded-md">
+            <div className="flex min-h-0 flex-1 flex-col gap-2 rounded-md border p-4">
               {/* Filters */}
               <div className="flex flex-wrap items-end gap-2">
                 {/* filter by status */}
@@ -254,36 +255,49 @@ export default function CustomersPage() {
                 </div>
               </div>
               {/* Invoice table */}
-              <Table className="border">
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Invoice ID</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Issued At</TableHead>
-                    <TableHead>Due At</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {invoices.map((invoice) => (
-                    <TableRow key={invoice.id}>
-                      <TableCell>
-                        <CopyText text={invoice.id} />
-                      </TableCell>
-                      <TableCell>
-                        {formatAmount(invoice.amount)} {invoice.currency}
-                      </TableCell>
-                      <TableCell>{statusTag(invoice.status)}</TableCell>
-                      <TableCell>
-                        {new Date(invoice.issued_at).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell>
-                        {new Date(invoice.due_at).toLocaleDateString()}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              <div className="flex min-h-0 flex-1 flex-col">
+                {invoices.length > 0 && (
+                  <ScrollArea className="min-h-0 flex-1 w-full rounded-md border">
+                    <Table className="border">
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Invoice ID</TableHead>
+                          <TableHead>Amount</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Issued At</TableHead>
+                          <TableHead>Due At</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {invoices.map((invoice) => (
+                          <TableRow key={invoice.id}>
+                            <TableCell>
+                              <CopyText text={invoice.id} />
+                            </TableCell>
+                            <TableCell>
+                              {formatAmount(invoice.amount)} {invoice.currency}
+                            </TableCell>
+                            <TableCell>{statusTag(invoice.status)}</TableCell>
+                            <TableCell>
+                              {new Date(invoice.issued_at).toLocaleDateString()}
+                            </TableCell>
+                            <TableCell>
+                              {new Date(invoice.due_at).toLocaleDateString()}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                    <ScrollBar orientation="vertical" />
+                    <ScrollBar orientation="horizontal" />
+                  </ScrollArea>
+                )}
+                {invoices.length === 0 && (
+                  <p className="text-gray-600 text-center text-lg font-medium">
+                    No invoices found
+                  </p>
+                )}
+              </div>
             </div>
           </div>
         )}

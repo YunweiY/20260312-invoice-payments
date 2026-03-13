@@ -272,36 +272,26 @@ export default function InvoicesPage() {
           ) : (
             <div className="flex flex-col gap-2 p-4">
               {/* basic information */}
-              <div className="flex flex-row gap-2">
-                <p className="font-medium">Invoice ID: </p>
-                <CopyText text={invoice.id} />
-              </div>
-              <div className="flex flex-row gap-2">
-                <p className="font-medium">Customer: </p>
+              <div className="grid grid-cols-[max-content_1fr] items-start gap-x-3 gap-y-2">
+                <p className="font-medium text-left">Invoice ID:</p>
+                <div>
+                  <CopyText text={invoice.id} />
+                </div>
+                <p className="font-medium text-left">Customer:</p>
                 <p>{invoice.customer.name}</p>
-              </div>
-              <div className="flex flex-row gap-2">
-                <p className="font-medium">Amount: </p>
+                <p className="font-medium text-left">Amount:</p>
                 <p>
                   {formatAmount(invoice.amount)} {invoice.currency}
                 </p>
-              </div>
-              <div className="flex flex-row gap-2">
-                <p className="font-medium">Outstanding Amount: </p>
+                <p className="font-medium text-left">Outstanding Amount:</p>
                 <p>
                   {formatAmount(invoice.remaining_amount)} {invoice.currency}
                 </p>
-              </div>
-              <div className="flex flex-row gap-2">
-                <p className="font-medium">Status: </p>
+                <p className="font-medium text-left">Status:</p>
                 <p>{statusTag(invoice.status)}</p>
-              </div>
-              <div className="flex flex-row gap-2">
-                <p className="font-medium">Issued At: </p>
+                <p className="font-medium text-left">Issued At:</p>
                 <p>{new Date(invoice.issued_at).toLocaleDateString()}</p>
-              </div>
-              <div className="flex flex-row gap-2">
-                <p className="font-medium">Due At: </p>
+                <p className="font-medium text-left">Due At:</p>
                 <p>{new Date(invoice.due_at).toLocaleDateString()}</p>
               </div>
               <div className="flex flex-col gap-2 border rounded-md p-2">
