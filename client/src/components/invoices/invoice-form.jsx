@@ -58,7 +58,7 @@ export function InvoiceForm({ open, setOpen, onSuccessSubmit }) {
       setOpen(false);
       onSuccessSubmit();
     } catch (error) {
-      setSubmitError(error.response.data.error.message);
+      setSubmitError(error?.response?.data?.error?.message || error.message);
     } finally {
       setIsFormSubmitting(false);
       setIsSubmitButtonEnabled(false);

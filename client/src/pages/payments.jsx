@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { AlertTriangleIcon, PlusIcon } from 'lucide-react';
+import { AlertTriangleIcon } from 'lucide-react';
 
 import DashboardLayout from '@/layout/dashboard';
 import { getAllPayments } from '@/api/payments.api';
