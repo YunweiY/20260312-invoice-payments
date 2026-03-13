@@ -83,7 +83,8 @@ export default function PaymentsPage() {
                       <TableCell>{payment.id}</TableCell>
                       <TableCell>{payment.invoice_id}</TableCell>
                       <TableCell>
-                        {Number(payment.amount).toLocaleString()}
+                        {Number(payment.amount).toLocaleString()}{' '}
+                        {payment.invoice.currency}
                       </TableCell>
                       <TableCell>
                         {new Date(payment.paid_at).toLocaleDateString()}

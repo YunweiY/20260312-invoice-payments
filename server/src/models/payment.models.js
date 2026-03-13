@@ -7,6 +7,13 @@ const getPayments = async (invoice_id, tx = prisma) => {
   }
   const payments = await tx.payments.findMany({
     where,
+    include: {
+      invoice: {
+        select: {
+          currency: true,
+        },
+      },
+    },
   });
   return payments;
 };
