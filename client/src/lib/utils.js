@@ -17,3 +17,17 @@ export function formatAmount(value) {
     maximumFractionDigits: 2,
   });
 }
+
+export function toIso8601(value) {
+  if (value === null || value === undefined || value === '') {
+    return undefined;
+  }
+
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    // Keep original value so backend validation can return a clear error.
+    return value;
+  }
+
+  return date.toISOString();
+}

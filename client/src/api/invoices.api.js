@@ -1,11 +1,12 @@
 import apiClient from './client';
+import { toIso8601 } from '@/lib/utils';
 
 export const getAllInvoices = async (status, from, to) => {
   const response = await apiClient.get('/invoices', {
     params: {
       status,
-      from,
-      to,
+      from: toIso8601(from),
+      to: toIso8601(to),
     },
   });
   return response.data.data;
@@ -21,7 +22,7 @@ export const createInvoice = async (customer_id, amount, currency, due_at) => {
     customer_id,
     amount: String(amount),
     currency,
-    due_at,
+    due_at: toIso8601(due_at) ?? due_at,
   });
   return response.data.data;
 };
