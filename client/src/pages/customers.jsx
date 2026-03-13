@@ -17,7 +17,6 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { SimpleSheet } from '@/components/common/simple-sheet';
-import { statusTag } from '@/components/invoices/status-tag';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -28,7 +27,7 @@ import {
 } from '@/components/ui/select';
 import { DatePicker } from '@/components/common/date-picker';
 import { CopyText } from '@/components/common/copy-text';
-import { formatAmount } from '@/lib/utils';
+import { InvoiceTable } from '@/components/invoices/invoice-table';
 import { useAutoPageSize } from '@/hooks/useAutoPageSize';
 import { CompactPagination } from '@/components/common/compact-pagination';
 import {
@@ -70,8 +69,8 @@ export default function CustomersPage() {
   const sheetScrollAreaRef = useRef(null);
   const sheetLimit = useAutoPageSize({
     containerRef: sheetScrollAreaRef,
-    rowHeight: 36, // h-9
-    initialLimit: 14,
+    rowHeight: 48, // h-12
+    initialLimit: 12,
   });
 
   async function loadInvoices(filters = {}) {
@@ -361,85 +360,48 @@ export default function CustomersPage() {
                 <div ref={sheetScrollAreaRef} className="min-h-0 flex-1">
                   {invoices.length > 0 && (
                     <ScrollArea className="size-full">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Invoice ID</TableHead>
-                            <TableHead>Amount</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Issued At</TableHead>
-                            <TableHead>Due At</TableHead>
-                            <TableHead className="w-32">Actions</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {invoices.map((invoice) => (
-                            <TableRow className="h-9" key={invoice.id}>
-                              <TableCell>
-                                <CopyText text={invoice.id} />
-                              </TableCell>
-                              <TableCell>
-                                {formatAmount(invoice.amount)}{' '}
-                                {invoice.currency}
-                              </TableCell>
-                              <TableCell>{statusTag(invoice.status)}</TableCell>
-                              <TableCell>
-                                {new Date(
-                                  invoice.issued_at
-                                ).toLocaleDateString()}
-                              </TableCell>
-                              <TableCell>
-                                {new Date(invoice.due_at).toLocaleDateString()}
-                              </TableCell>
-                              <TableCell>
-                                {(() => {
-                                  const buttons = actionButtonTypes(invoice);
-                                  return buttons.length > 0 ? (
-                                    isUpdatingInvoiceStatus ? (
-                                      <Button
-                                        className="w-full"
-                                        variant="outline"
-                                        disabled
+                      <InvoiceTable
+                        invoices={invoices}
+                        showActions
+                        renderActions={(invoice) => {
+                          const buttons = actionButtonTypes(invoice);
+                          return buttons.length > 0 ? (
+                            isUpdatingInvoiceStatus ? (
+                              <Button
+                                className="w-full"
+                                variant="outline"
+                                disabled
+                              >
+                                <Spinner className="size-4" />
+                                Updating...
+                              </Button>
+                            ) : (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button className="w-full" variant="outline">
+                                    Update
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuGroup>
+                                    {buttons.map((button) => (
+                                      <DropdownMenuItem
+                                        key={button.type}
+                                        variant={button.variant}
+                                        onSelect={button.onClick}
+                                        disabled={isUpdatingInvoiceStatus}
                                       >
-                                        <Spinner className="size-4" />
-                                        Updating...
-                                      </Button>
-                                    ) : (
-                                      <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                          <Button
-                                            className="w-full"
-                                            variant="outline"
-                                          >
-                                            Update
-                                          </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end">
-                                          <DropdownMenuGroup>
-                                            {buttons.map((button) => (
-                                              <DropdownMenuItem
-                                                key={button.type}
-                                                variant={button.variant}
-                                                onSelect={button.onClick}
-                                                disabled={
-                                                  isUpdatingInvoiceStatus
-                                                }
-                                              >
-                                                {button.icon}
-                                                {button.label}
-                                              </DropdownMenuItem>
-                                            ))}
-                                          </DropdownMenuGroup>
-                                        </DropdownMenuContent>
-                                      </DropdownMenu>
-                                    )
-                                  ) : null;
-                                })()}
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
+                                        {button.icon}
+                                        {button.label}
+                                      </DropdownMenuItem>
+                                    ))}
+                                  </DropdownMenuGroup>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            )
+                          ) : null;
+                        }}
+                      />
                       <ScrollBar orientation="horizontal" />
                     </ScrollArea>
                   )}
