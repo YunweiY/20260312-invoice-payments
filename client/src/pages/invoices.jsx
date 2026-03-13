@@ -15,29 +15,62 @@ import { Badge } from '@/components/ui/badge';
 import { PlusIcon, AlertTriangleIcon } from 'lucide-react';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Spinner } from '@/components/ui/spinner';
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select';
+import { DatePicker } from '@/components/common/date-picker';
+import { Label } from '@/components/ui/label';
 
 export default function InvoicesPage() {
   const [invoices, setInvoices] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [status, setStatus] = useState(null);
+  const [fromDate, setFromDate] = useState(null);
+  const [toDate, setToDate] = useState(null);
 
-  async function loadInvoices() {
-    getAllInvoices()
-      .then((data) => {
-        setInvoices(data);
-        setError(null);
-      })
-      .catch((error) => {
-        setError(error);
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
+  async function loadInvoices(filters = {}) {
+    // Use undefined instead of ?? to check the filter values so we can pass null to reset filters
+    const nextStatus = filters.status !== undefined ? filters.status : status;
+    const nextFromDate =
+      filters.fromDate !== undefined ? filters.fromDate : fromDate;
+    const nextToDate = filters.toDate !== undefined ? filters.toDate : toDate;
+
+    const data = await getAllInvoices(
+      null,
+      nextStatus,
+      nextFromDate,
+      nextToDate
+    );
+    setInvoices(data);
+  }
+
+  async function runLoad(filters = {}) {
+    setIsLoading(true);
+    setError(null);
+    try {
+      await loadInvoices(filters);
+    } catch (error) {
+      setError(error);
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   useEffect(() => {
-    loadInvoices();
+    runLoad();
   }, []);
+
+  function resetFilters() {
+    setStatus(null);
+    setFromDate(null);
+    setToDate(null);
+    runLoad({ status: null, fromDate: null, toDate: null });
+  }
 
   const showActionButtons = (invoice) => {
     return invoice.status === 'DRAFT';
@@ -98,20 +131,60 @@ export default function InvoicesPage() {
         <div className="flex h-full items-center justify-center flex-col gap-2">
           <AlertTriangleIcon className="size-10 text-red-600" />
           <p className="text-red-600 text-center text-lg font-medium">
-            {error.message}
+            {error.response.data.error.message || error.message}
           </p>
-          <Button
-            variant="outline"
-            onClick={() => {
-              loadInvoices();
-              setIsLoading(true);
-            }}
-          >
-            Try Again
-          </Button>
+          <div className="flex flex-row gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsLoading(true);
+                runLoad();
+              }}
+            >
+              Try Again
+            </Button>
+            <Button onClick={resetFilters}>Reset Filters</Button>
+          </div>
         </div>
       ) : (
-        <div className="flex h-full min-h-0 p-4">
+        <div className="flex flex-col gap-2 h-full min-h-0 p-4">
+          {/* filters */}
+          <div className="flex flex-row gap-2">
+            {/* filter by status */}
+            <Label>Status: </Label>
+            <Select
+              value={status ?? undefined}
+              onValueChange={(value) => setStatus(value)}
+            >
+              <SelectTrigger className="min-w-36">
+                <SelectValue placeholder="Select a status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="DRAFT">Draft</SelectItem>
+                <SelectItem value="PENDING">Pending</SelectItem>
+                <SelectItem value="PAID">Paid</SelectItem>
+                <SelectItem value="VOID">Void</SelectItem>
+              </SelectContent>
+            </Select>
+            {/* filter by issued_at date range */}
+            <Label>From: </Label>
+            <DatePicker
+              value={fromDate}
+              setValue={setFromDate}
+              maxDate={toDate}
+            />
+            <Label>To: </Label>
+            <DatePicker
+              value={toDate}
+              setValue={setToDate}
+              minDate={fromDate}
+            />
+            <Button onClick={() => runLoad()}>Filter</Button>
+            <Button onClick={resetFilters} variant="outline">
+              Reset
+            </Button>
+          </div>
+          {/* invoices table */}
           <Card className="flex h-full min-h-0 flex-1 flex-col p-2">
             <ScrollArea className="h-full w-full">
               <Table>
