@@ -256,7 +256,7 @@ export default function InvoicesPage() {
             </div>
           </div>
           {/* invoices table */}
-          <Card className="flex h-full min-h-0 flex-1 flex-col p-2 bg-">
+          <Card className="flex h-full min-h-0 flex-1 flex-col p-2">
             <div ref={scrollAreaRef} className="min-h-0 flex-1">
               <ScrollArea className="size-full">
                 <Table>

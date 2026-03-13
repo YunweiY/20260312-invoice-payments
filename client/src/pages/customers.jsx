@@ -54,6 +54,15 @@ export default function CustomersPage() {
     initialLimit: 15,
   });
 
+  const [sheetPage, setSheetPage] = useState(1);
+  const [sheetTotalPages, setSheetTotalPages] = useState(0);
+  const sheetScrollAreaRef = useRef(null);
+  const sheetLimit = useAutoPageSize({
+    containerRef: sheetScrollAreaRef,
+    rowHeight: 40, // h-8
+    initialLimit: 15,
+  });
+
   async function loadInvoices(filters = {}) {
     const nextStatus = filters.status !== undefined ? filters.status : status;
     const nextFromDate =
@@ -62,13 +71,16 @@ export default function CustomersPage() {
     setIsSheetLoading(true);
     setSheetError(null);
     try {
-      const { invoices } = await getCustomerInvoices(
+      const { invoices, meta } = await getCustomerInvoices(
         selectedCustomer.id,
         nextStatus,
         nextFromDate,
-        nextToDate
+        nextToDate,
+        sheetPage,
+        sheetLimit
       );
       setInvoices(invoices);
+      setSheetTotalPages(meta.totalPages);
     } catch (error) {
       setSheetError(error);
     } finally {
@@ -83,13 +95,21 @@ export default function CustomersPage() {
     loadInvoices({ status: null, fromDate: null, toDate: null });
   }
 
-  async function loadInvoicesByCustomerId(id) {
+  async function loadInvoicesByCustomerId(id, pageOverride = sheetPage) {
     setIsSheetOpen(true);
     setIsSheetLoading(true);
     setSheetError(null);
     try {
-      const { invoices } = await getCustomerInvoices(id, status, fromDate, toDate);
+      const { invoices, meta } = await getCustomerInvoices(
+        id,
+        status,
+        fromDate,
+        toDate,
+        pageOverride,
+        sheetLimit
+      );
       setInvoices(invoices);
+      setSheetTotalPages(meta.totalPages);
     } catch (error) {
       setSheetError(error);
     } finally {
@@ -276,49 +296,64 @@ export default function CustomersPage() {
                 </div>
               </div>
               {/* Invoice table */}
-              <div className="flex min-h-0 flex-1 flex-col">
-                {invoices.length > 0 && (
-                  <ScrollArea className="min-h-0 flex-1 w-full rounded-md border">
-                    <Table className="border">
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Invoice ID</TableHead>
-                          <TableHead>Amount</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Issued At</TableHead>
-                          <TableHead>Due At</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {invoices.map((invoice) => (
-                          <TableRow key={invoice.id}>
-                            <TableCell>
-                              <CopyText text={invoice.id} />
-                            </TableCell>
-                            <TableCell>
-                              {formatAmount(invoice.amount)} {invoice.currency}
-                            </TableCell>
-                            <TableCell>{statusTag(invoice.status)}</TableCell>
-                            <TableCell>
-                              {new Date(invoice.issued_at).toLocaleDateString()}
-                            </TableCell>
-                            <TableCell>
-                              {new Date(invoice.due_at).toLocaleDateString()}
-                            </TableCell>
+              <Card className="flex h-full min-h-0 flex-1 flex-col p-2">
+                <div ref={sheetScrollAreaRef} className="min-h-0 flex-1">
+                  {invoices.length > 0 && (
+                    <ScrollArea className="size-full">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Invoice ID</TableHead>
+                            <TableHead>Amount</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Issued At</TableHead>
+                            <TableHead>Due At</TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                    <ScrollBar orientation="vertical" />
-                    <ScrollBar orientation="horizontal" />
-                  </ScrollArea>
-                )}
+                        </TableHeader>
+                        <TableBody>
+                          {invoices.map((invoice) => (
+                            <TableRow className="h-10" key={invoice.id}>
+                              <TableCell>
+                                <CopyText text={invoice.id} />
+                              </TableCell>
+                              <TableCell>
+                                {formatAmount(invoice.amount)}{' '}
+                                {invoice.currency}
+                              </TableCell>
+                              <TableCell>{statusTag(invoice.status)}</TableCell>
+                              <TableCell>
+                                {new Date(
+                                  invoice.issued_at
+                                ).toLocaleDateString()}
+                              </TableCell>
+                              <TableCell>
+                                {new Date(invoice.due_at).toLocaleDateString()}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                      <ScrollBar orientation="vertical" />
+                      <ScrollBar orientation="horizontal" />
+                    </ScrollArea>
+                  )}
+                </div>
                 {invoices.length === 0 && (
                   <p className="text-gray-600 text-center text-lg font-medium">
                     No invoices found
                   </p>
                 )}
-              </div>
+                <div className="border-t p-2">
+                  <CompactPagination
+                    page={sheetPage}
+                    totalPages={sheetTotalPages}
+                    onPageChange={(nextPage) => {
+                      setSheetPage(nextPage);
+                      loadInvoicesByCustomerId(selectedCustomer.id, nextPage);
+                    }}
+                  />
+                </div>
+              </Card>
             </div>
           </div>
         )}
