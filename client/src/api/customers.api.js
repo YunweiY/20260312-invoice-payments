@@ -8,7 +8,14 @@ export const getAllCustomers = async (page, limit) => {
   return { customers: response.data.data, meta: response.data.meta };
 };
 
-export const getCustomerInvoices = async (id, status, from, to, page, limit) => {
+export const getCustomerInvoices = async (
+  id,
+  status,
+  from,
+  to,
+  page,
+  limit
+) => {
   const response = await apiClient.get(`/customers/${id}/invoices`, {
     params: {
       status,

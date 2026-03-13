@@ -290,6 +290,11 @@ export default function InvoicesPage() {
                     ) : null;
                   }}
                 />
+                {invoices.length === 0 && (
+                  <p className="py-6 text-center text-gray-600 text-lg font-medium">
+                    No invoices found
+                  </p>
+                )}
                 <ScrollBar orientation="horizontal" />
               </ScrollArea>
             </div>
@@ -378,18 +383,18 @@ export default function InvoicesPage() {
                   </Button>
                 </div>
                 {/* payments table */}
-                {invoice.payments.length > 0 && (
-                  <Card className="flex h-full min-h-0 flex-1 flex-col p-2">
-                    <div className="min-h-0 flex-1">
-                      <ScrollArea className="size-full">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>Payment ID</TableHead>
-                              <TableHead>Amount</TableHead>
-                              <TableHead>Paid At</TableHead>
-                            </TableRow>
-                          </TableHeader>
+                <Card className="flex min-h-0 flex-col p-2">
+                  <div className="min-h-0">
+                    <ScrollArea className="size-full">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Payment ID</TableHead>
+                            <TableHead>Amount</TableHead>
+                            <TableHead>Paid At</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        {paginatedPayments.length > 0 && (
                           <TableBody>
                             {paginatedPayments.map((payment) => (
                               <TableRow key={payment.id}>
@@ -406,10 +411,17 @@ export default function InvoicesPage() {
                               </TableRow>
                             ))}
                           </TableBody>
-                        </Table>
-                        <ScrollBar orientation="horizontal" />
-                      </ScrollArea>
-                    </div>
+                        )}
+                      </Table>
+                      {invoice.payments.length === 0 && (
+                        <p className="py-6 text-center text-gray-600 text-lg font-medium">
+                          No related payments found
+                        </p>
+                      )}
+                      <ScrollBar orientation="horizontal" />
+                    </ScrollArea>
+                  </div>
+                  {paymentTotalPages > 1 && (
                     <div className="border-t p-2">
                       <CompactPagination
                         page={paymentPage}
@@ -417,13 +429,8 @@ export default function InvoicesPage() {
                         onPageChange={setPaymentPage}
                       />
                     </div>
-                  </Card>
-                )}
-                {invoice.payments.length === 0 && (
-                  <p className="text-gray-600 text-center text-lg font-medium">
-                    No related payments found
-                  </p>
-                )}
+                  )}
+                </Card>
               </div>
             </div>
           )}

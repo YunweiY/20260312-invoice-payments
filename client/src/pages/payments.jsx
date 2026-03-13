@@ -91,25 +91,33 @@ export default function PaymentsPage() {
                       <TableHead>Paid At</TableHead>
                     </TableRow>
                   </TableHeader>
-                  <TableBody>
-                    {payments.map((payment) => (
-                      <TableRow className="h-12" key={payment.id}>
-                        <TableCell>
-                          <CopyText text={payment.id} />
-                        </TableCell>
-                        <TableCell>
-                          <CopyText text={payment.invoice_id} />
-                        </TableCell>
-                        <TableCell>
-                          {formatAmount(payment.amount)} {payment.invoice.currency}
-                        </TableCell>
-                        <TableCell>
-                          {new Date(payment.paid_at).toLocaleDateString()}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
+                  {payments.length > 0 && (
+                    <TableBody>
+                      {payments.map((payment) => (
+                        <TableRow className="h-12" key={payment.id}>
+                          <TableCell>
+                            <CopyText text={payment.id} />
+                          </TableCell>
+                          <TableCell>
+                            <CopyText text={payment.invoice_id} />
+                          </TableCell>
+                          <TableCell>
+                            {formatAmount(payment.amount)}{' '}
+                            {payment.invoice.currency}
+                          </TableCell>
+                          <TableCell>
+                            {new Date(payment.paid_at).toLocaleDateString()}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  )}
                 </Table>
+                {payments.length === 0 && (
+                  <p className="py-6 text-center text-gray-600 text-lg font-medium">
+                    No payments found
+                  </p>
+                )}
                 <ScrollBar orientation="horizontal" />
               </ScrollArea>
             </div>

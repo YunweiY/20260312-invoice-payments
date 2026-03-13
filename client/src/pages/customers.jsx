@@ -70,7 +70,7 @@ export default function CustomersPage() {
   const sheetLimit = useAutoPageSize({
     containerRef: sheetScrollAreaRef,
     rowHeight: 48, // h-12
-    initialLimit: 12,
+    initialLimit: 10,
   });
 
   async function loadInvoices(filters = {}) {
@@ -198,24 +198,31 @@ export default function CustomersPage() {
                       <TableHead>Name</TableHead>
                     </TableRow>
                   </TableHeader>
-                  <TableBody>
-                    {customers.map((customer) => (
-                      <TableRow
-                        className="h-12"
-                        key={customer.id}
-                        onClick={() => {
-                          setSelectedCustomer(customer);
-                          loadInvoicesByCustomerId(customer.id);
-                        }}
-                      >
-                        <TableCell>
-                          <CopyText text={customer.id} />
-                        </TableCell>
-                        <TableCell>{customer.name}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
+                  {customers.length > 0 && (
+                    <TableBody>
+                      {customers.map((customer) => (
+                        <TableRow
+                          className="h-12"
+                          key={customer.id}
+                          onClick={() => {
+                            setSelectedCustomer(customer);
+                            loadInvoicesByCustomerId(customer.id);
+                          }}
+                        >
+                          <TableCell>
+                            <CopyText text={customer.id} />
+                          </TableCell>
+                          <TableCell>{customer.name}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  )}
                 </Table>
+                {customers.length === 0 && (
+                  <p className="py-6 text-center text-gray-600 text-lg font-medium">
+                    No customers found
+                  </p>
+                )}
                 <ScrollBar orientation="horizontal" />
               </ScrollArea>
             </div>
@@ -272,7 +279,7 @@ export default function CustomersPage() {
               <p className="font-medium text-left">Name:</p>
               <p>{selectedCustomer?.name}</p>
             </div>
-            <div className="flex min-h-0 flex-1 flex-col gap-2 rounded-md border p-4">
+            <div className="flex min-h-0 flex-col gap-2 rounded-md border p-4">
               {/* Filters */}
               <div className="flex flex-wrap items-end gap-2">
                 {/* filter by status */}
@@ -321,64 +328,62 @@ export default function CustomersPage() {
                 </div>
               </div>
               {/* Invoice table */}
-              <Card className="flex h-full min-h-0 flex-1 flex-col p-2">
-                <div ref={sheetScrollAreaRef} className="min-h-0 flex-1">
-                  {invoices.length > 0 && (
-                    <ScrollArea className="size-full">
-                      <InvoiceTable
-                        invoices={invoices}
-                        showActions
-                        renderActions={(invoice) => {
-                          const buttons = getInvoiceActionButtonTypes(
-                            invoice,
-                            handleUpdateInvoiceStatus
-                          );
-                          return buttons.length > 0 ? (
-                            isUpdatingInvoiceStatus ? (
-                              <Button
-                                className="w-full"
-                                variant="outline"
-                                disabled
-                              >
-                                <Spinner className="size-4" />
-                                Updating...
-                              </Button>
-                            ) : (
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button className="w-full" variant="outline">
-                                    Update
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuGroup>
-                                    {buttons.map((button) => (
-                                      <DropdownMenuItem
-                                        key={button.type}
-                                        variant={button.variant}
-                                        onSelect={button.onClick}
-                                        disabled={isUpdatingInvoiceStatus}
-                                      >
-                                        {button.icon}
-                                        {button.label}
-                                      </DropdownMenuItem>
-                                    ))}
-                                  </DropdownMenuGroup>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            )
-                          ) : null;
-                        }}
-                      />
-                      <ScrollBar orientation="horizontal" />
-                    </ScrollArea>
-                  )}
+              <Card className="flex min-h-0 flex-col p-2">
+                <div ref={sheetScrollAreaRef} className="min-h-0">
+                  <ScrollArea className="size-full">
+                    <InvoiceTable
+                      invoices={invoices}
+                      showActions
+                      renderActions={(invoice) => {
+                        const buttons = getInvoiceActionButtonTypes(
+                          invoice,
+                          handleUpdateInvoiceStatus
+                        );
+                        return buttons.length > 0 ? (
+                          isUpdatingInvoiceStatus ? (
+                            <Button
+                              className="w-full"
+                              variant="outline"
+                              disabled
+                            >
+                              <Spinner className="size-4" />
+                              Updating...
+                            </Button>
+                          ) : (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button className="w-full" variant="outline">
+                                  Update
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuGroup>
+                                  {buttons.map((button) => (
+                                    <DropdownMenuItem
+                                      key={button.type}
+                                      variant={button.variant}
+                                      onSelect={button.onClick}
+                                      disabled={isUpdatingInvoiceStatus}
+                                    >
+                                      {button.icon}
+                                      {button.label}
+                                    </DropdownMenuItem>
+                                  ))}
+                                </DropdownMenuGroup>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )
+                        ) : null;
+                      }}
+                    />
+                    {invoices.length === 0 && (
+                      <p className="py-6 text-center text-gray-600 text-lg font-medium">
+                        No invoices found
+                      </p>
+                    )}
+                    <ScrollBar orientation="horizontal" />
+                  </ScrollArea>
                 </div>
-                {invoices.length === 0 && (
-                  <p className="text-gray-600 text-center text-lg font-medium">
-                    No invoices found
-                  </p>
-                )}
                 <div className="border-t p-2">
                   <CompactPagination
                     page={sheetPage}
