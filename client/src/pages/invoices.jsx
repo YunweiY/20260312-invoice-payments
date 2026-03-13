@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getAllInvoices } from '@/api/invoices.api';
+import { getAllInvoices, getInvoiceById } from '@/api/invoices.api';
 import DashboardLayout from '@/layout/dashboard';
 import {
   Table,
@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/select';
 import { DatePicker } from '@/components/common/date-picker';
 import { Label } from '@/components/ui/label';
+import { SimpleSheet } from '@/components/common/simple-sheet';
 
 export default function InvoicesPage() {
   const [invoices, setInvoices] = useState([]);
@@ -32,6 +33,12 @@ export default function InvoicesPage() {
   const [status, setStatus] = useState(null);
   const [fromDate, setFromDate] = useState(null);
   const [toDate, setToDate] = useState(null);
+
+  const [selectedInvoiceId, setSelectedInvoiceId] = useState(null);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [isSheetLoading, setIsSheetLoading] = useState(true);
+  const [sheetError, setSheetError] = useState(null);
+  const [invoice, setInvoice] = useState(null);
 
   async function loadInvoices(filters = {}) {
     // Use undefined instead of ?? to check the filter values so we can pass null to reset filters
@@ -58,6 +65,25 @@ export default function InvoicesPage() {
       setError(error);
     } finally {
       setIsLoading(false);
+    }
+  }
+
+  async function loadInvoiceById(id) {
+    setSelectedInvoiceId(id);
+    setIsSheetLoading(true);
+    setSheetError(null);
+    setIsSheetOpen(true);
+    if (invoice && invoice.id === id) {
+      setIsSheetLoading(false);
+      return;
+    }
+    try {
+      const data = await getInvoiceById(id);
+      setInvoice(data);
+    } catch (error) {
+      setSheetError(error);
+    } finally {
+      setIsSheetLoading(false);
     }
   }
 
@@ -131,7 +157,7 @@ export default function InvoicesPage() {
         <div className="flex h-full items-center justify-center flex-col gap-2">
           <AlertTriangleIcon className="size-10 text-red-600" />
           <p className="text-red-600 text-center text-lg font-medium">
-            {error.response.data.error.message || error.message}
+            {error?.response?.data?.error?.message || error.message}
           </p>
           <div className="flex flex-row gap-2">
             <Button
@@ -201,7 +227,10 @@ export default function InvoicesPage() {
                 </TableHeader>
                 <TableBody>
                   {invoices.map((invoice) => (
-                    <TableRow key={invoice.id}>
+                    <TableRow
+                      key={invoice.id}
+                      onClick={() => loadInvoiceById(invoice.id)}
+                    >
                       <TableCell>{invoice.id}</TableCell>
                       <TableCell>{invoice.customer.name}</TableCell>
                       <TableCell>
@@ -228,6 +257,108 @@ export default function InvoicesPage() {
           </Card>
         </div>
       )}
+      {/* invoice details sheet */}
+      <SimpleSheet
+        maxWidth="900px"
+        title="Invoice Details"
+        description="View invoice details"
+        open={isSheetOpen}
+        setOpen={setIsSheetOpen}
+      >
+        <div>
+          {isSheetLoading ? (
+            <div className="flex h-full items-center justify-center">
+              <Spinner className="size-10" />
+              <p className="text-gray-600 text-center text-lg font-medium">
+                Loading invoice details...
+              </p>
+            </div>
+          ) : sheetError ? (
+            <div className="flex h-full items-center justify-center flex-col gap-2">
+              <AlertTriangleIcon className="size-10 text-red-600" />
+              <p className="text-red-600 text-center text-lg font-medium">
+                {sheetError?.response?.data?.error?.message ||
+                  sheetError.message}
+              </p>
+              <div className="flex flex-row gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    if (selectedInvoiceId) {
+                      loadInvoiceById(selectedInvoiceId);
+                    } else {
+                      setIsSheetOpen(false);
+                    }
+                  }}
+                >
+                  Try Again
+                </Button>
+                <Button onClick={() => setIsSheetOpen(false)}>Close</Button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2 p-4">
+              {/* basic information */}
+              <div className="flex flex-row gap-2">
+                <p className="font-medium">Invoice ID: </p>
+                <p>{invoice.id}</p>
+              </div>
+              <div className="flex flex-row gap-2">
+                <p className="font-medium">Customer: </p>
+                <p>{invoice.customer.name}</p>
+              </div>
+              <div className="flex flex-row gap-2">
+                <p className="font-medium">Amount: </p>
+                <p>
+                  {invoice.amount.toLocaleString()} {invoice.currency}
+                </p>
+              </div>
+              <div className="flex flex-row gap-2">
+                <p className="font-medium">Status: </p>
+                <p>{statusTag(invoice.status)}</p>
+              </div>
+              <div className="flex flex-row gap-2">
+                <p className="font-medium">Issued At: </p>
+                <p>{new Date(invoice.issued_at).toLocaleDateString()}</p>
+              </div>
+              <div className="flex flex-row gap-2">
+                <p className="font-medium">Due At: </p>
+                <p>{new Date(invoice.due_at).toLocaleDateString()}</p>
+              </div>
+              {/* payments table */}
+              {invoice.payments.length > 0 && (
+                <Table className="border">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Payment ID</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Paid At</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {invoice.payments.map((payment) => (
+                      <TableRow key={payment.id}>
+                        <TableCell>{payment.id}</TableCell>
+                        <TableCell>
+                          {payment.amount.toLocaleString()} {invoice.currency}
+                        </TableCell>
+                        <TableCell>
+                          {new Date(payment.paid_at).toLocaleDateString()}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+              {invoice.payments.length === 0 && (
+                <p className="text-gray-600 text-center text-lg font-medium">
+                  No related payments found
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      </SimpleSheet>
     </DashboardLayout>
   );
 }
