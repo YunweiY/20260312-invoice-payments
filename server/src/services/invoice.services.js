@@ -36,9 +36,8 @@ const getInvoiceByIdService = async (id) => {
     throw NotFoundError('Invoice not found', 'NOT_FOUND');
   }
 
-  const payments = await paymentModel.getPayments(id);
   const invoiceAmount = new Prisma.Decimal(invoice.amount);
-  const totalPaid = payments.reduce(
+  const totalPaid = (invoice.payments ?? []).reduce(
     (acc, payment) => acc.plus(new Prisma.Decimal(payment.amount)),
     new Prisma.Decimal(0)
   );
