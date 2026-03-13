@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { AlertTriangleIcon, PlusIcon } from 'lucide-react';
-
+import { AlertTriangleIcon } from 'lucide-react';
 import DashboardLayout from '@/layout/dashboard';
 import { getAllCustomers } from '@/api/customers.api';
+import { getCustomerInvoices } from '@/api/customers.api';
 import { Spinner } from '@/components/ui/spinner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -15,11 +15,67 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { SimpleSheet } from '@/components/common/simple-sheet';
+import { statusTag } from '@/components/invoices/status-tag';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select';
+import { DatePicker } from '@/components/common/date-picker';
 
 export default function CustomersPage() {
   const [customers, setCustomers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [invoices, setInvoices] = useState([]);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [isSheetLoading, setIsSheetLoading] = useState(true);
+  const [sheetError, setSheetError] = useState(null);
+
+  const [status, setStatus] = useState(null);
+  const [fromDate, setFromDate] = useState(null);
+  const [toDate, setToDate] = useState(null);
+
+  async function loadInvoices(filters = {}) {
+    const nextStatus = filters.status !== undefined ? filters.status : status;
+    const nextFromDate =
+      filters.fromDate !== undefined ? filters.fromDate : fromDate;
+    const nextToDate = filters.toDate !== undefined ? filters.toDate : toDate;
+    const data = await getCustomerInvoices(
+      selectedCustomer.id,
+      nextStatus,
+      nextFromDate,
+      nextToDate
+    );
+    setInvoices(data);
+  }
+
+  function resetFilters() {
+    setStatus('');
+    setFromDate(null);
+    setToDate(null);
+    loadInvoices({ status: null, fromDate: null, toDate: null });
+  }
+
+  async function loadInvoicesByCustomerId(id) {
+    setIsSheetOpen(true);
+    setIsSheetLoading(true);
+    setSheetError(null);
+    try {
+      const data = await getCustomerInvoices(id, status, fromDate, toDate);
+      setInvoices(data);
+    } catch (error) {
+      setSheetError(error);
+    } finally {
+      setIsSheetLoading(false);
+    }
+  }
 
   async function loadCustomers() {
     getAllCustomers()
@@ -77,7 +133,13 @@ export default function CustomersPage() {
                 </TableHeader>
                 <TableBody>
                   {customers.map((customer) => (
-                    <TableRow key={customer.id}>
+                    <TableRow
+                      key={customer.id}
+                      onClick={() => {
+                        setSelectedCustomer(customer);
+                        loadInvoicesByCustomerId(customer.id);
+                      }}
+                    >
                       <TableCell>{customer.id}</TableCell>
                       <TableCell>{customer.name}</TableCell>
                     </TableRow>
@@ -89,6 +151,118 @@ export default function CustomersPage() {
           </Card>
         </div>
       )}
+      <SimpleSheet
+        maxWidth="900px"
+        title="View Customer"
+        description="View customer details"
+        open={isSheetOpen}
+        setOpen={setIsSheetOpen}
+      >
+        {isSheetLoading ? (
+          <div className="flex h-full items-center justify-center">
+            <Spinner className="size-10" />
+            <p className="text-gray-600 text-center text-lg font-medium">
+              Loading customer details...
+            </p>
+          </div>
+        ) : sheetError ? (
+          <div className="flex h-full items-center justify-center flex-col gap-2">
+            <AlertTriangleIcon className="size-10 text-red-600" />
+            <p className="text-red-600 text-center text-lg font-medium">
+              {sheetError?.response?.data?.error?.message || sheetError.message}
+            </p>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-2 p-4">
+            <div className="flex flex-row gap-2">
+              <p className="font-medium">Customer ID:</p>
+              <p>{selectedCustomer?.id}</p>
+            </div>
+            <div className="flex flex-row gap-2">
+              <p className="font-medium">Name:</p>
+              <p>{selectedCustomer?.name}</p>
+            </div>
+            <div className="flex flex-col gap-2 border p-4 rounded-md">
+              {/* Filters */}
+              <div className="flex flex-wrap items-end gap-2">
+                {/* filter by status */}
+                <div className="flex flex-row gap-2">
+                  <Label>Status: </Label>
+                  <Select
+                    value={status ?? undefined}
+                    onValueChange={(value) => setStatus(value)}
+                  >
+                    <SelectTrigger className="min-w-36">
+                      <SelectValue placeholder="Select a status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="DRAFT">Draft</SelectItem>
+                      <SelectItem value="PENDING">Pending</SelectItem>
+                      <SelectItem value="PAID">Paid</SelectItem>
+                      <SelectItem value="VOID">Void</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {/* filter by issued_at date range */}
+                <div className="flex flex-row gap-2">
+                  <Label>From: </Label>
+                  <DatePicker
+                    value={fromDate}
+                    setValue={setFromDate}
+                    maxDate={toDate}
+                  />
+                  <Label>To: </Label>
+                  <DatePicker
+                    value={toDate}
+                    setValue={setToDate}
+                    minDate={fromDate}
+                  />
+                </div>
+                <div className="flex flex-row gap-2">
+                  <Button onClick={() => loadInvoices()}>Filter</Button>
+                  <Button
+                    onClick={() => {
+                      resetFilters();
+                    }}
+                    variant="outline"
+                  >
+                    Reset
+                  </Button>
+                </div>
+              </div>
+              {/* Invoice table */}
+              <Table className="border">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Invoice ID</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Issued At</TableHead>
+                    <TableHead>Due At</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {invoices.map((invoice) => (
+                    <TableRow key={invoice.id}>
+                      <TableCell>{invoice.id}</TableCell>
+                      <TableCell>
+                        {invoice.amount.toLocaleString()} {invoice.currency}
+                      </TableCell>
+                      <TableCell>{statusTag(invoice.status)}</TableCell>
+                      <TableCell>
+                        {new Date(invoice.issued_at).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell>
+                        {new Date(invoice.due_at).toLocaleDateString()}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+        )}
+      </SimpleSheet>
     </DashboardLayout>
   );
 }

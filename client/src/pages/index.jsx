@@ -10,6 +10,7 @@ import {
 import { Button } from '@/components/ui/button';
 import DashboardLayout from '@/layout/dashboard';
 import { Spinner } from '@/components/ui/spinner';
+import { RocketIcon, AlertTriangleIcon } from 'lucide-react';
 
 export default function IndexPage() {
   const [message, setMessage] = useState('');
@@ -40,11 +41,31 @@ export default function IndexPage() {
           </CardHeader>
           <CardContent className="flex flex-col">
             {message && (
-              <p
-                className={`text-center text-lg font-medium ${error ? 'text-red-600' : 'text-green-600'}`}
-              >
-                {message}
-              </p>
+              <>
+                {error ? (
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="flex flex-row gap-2">
+                      <AlertTriangleIcon className="size-10 text-red-600 animate-bounce" />
+                      <AlertTriangleIcon className="size-10 text-red-600 animate-bounce delay-75" />
+                      <AlertTriangleIcon className="size-10 text-red-600 animate-bounce delay-150" />
+                    </div>
+                    <p className="text-center text-lg font-medium text-red-600">
+                      {message}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="flex flex-row gap-2">
+                      <RocketIcon className="size-10 text-green-600 animate-ping" />
+                      <RocketIcon className="size-10 text-green-600 animate-ping delay-75" />
+                      <RocketIcon className="size-10 text-green-600 animate-ping delay-150" />
+                    </div>
+                    <p className="text-center text-lg font-medium text-green-600">
+                      {message}
+                    </p>
+                  </div>
+                )}
+              </>
             )}
           </CardContent>
           <CardFooter className="flex justify-center">
