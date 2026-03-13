@@ -3,6 +3,7 @@ import { AlertTriangleIcon } from 'lucide-react';
 import DashboardLayout from '@/layout/dashboard';
 import { getAllCustomers } from '@/api/customers.api';
 import { getCustomerInvoices } from '@/api/customers.api';
+import { updateInvoiceStatus } from '@/api/invoices.api';
 import { Spinner } from '@/components/ui/spinner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -30,6 +31,15 @@ import { CopyText } from '@/components/common/copy-text';
 import { formatAmount } from '@/lib/utils';
 import { useAutoPageSize } from '@/hooks/useAutoPageSize';
 import { CompactPagination } from '@/components/common/compact-pagination';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+} from '@/components/ui/dropdown-menu';
+import { CheckIcon, TrashIcon } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function CustomersPage() {
   const [customers, setCustomers] = useState([]);
@@ -38,6 +48,7 @@ export default function CustomersPage() {
 
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [invoices, setInvoices] = useState([]);
+  const [isUpdatingInvoiceStatus, setIsUpdatingInvoiceStatus] = useState(false);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [isSheetLoading, setIsSheetLoading] = useState(true);
   const [sheetError, setSheetError] = useState(null);
@@ -59,8 +70,8 @@ export default function CustomersPage() {
   const sheetScrollAreaRef = useRef(null);
   const sheetLimit = useAutoPageSize({
     containerRef: sheetScrollAreaRef,
-    rowHeight: 40, // h-8
-    initialLimit: 15,
+    rowHeight: 36, // h-9
+    initialLimit: 14,
   });
 
   async function loadInvoices(filters = {}) {
@@ -135,6 +146,56 @@ export default function CustomersPage() {
   useEffect(() => {
     loadCustomers();
   }, [page, limit]);
+
+  async function handleUpdateInvoiceStatus(id, targetStatus) {
+    if (!selectedCustomer?.id) return;
+
+    try {
+      setIsUpdatingInvoiceStatus(true);
+      await updateInvoiceStatus(id, targetStatus);
+      toast.success(`Invoice status updated to ${targetStatus}`);
+      await loadInvoicesByCustomerId(selectedCustomer.id);
+    } catch (error) {
+      toast.error(error?.response?.data?.error?.message || error.message);
+    } finally {
+      setIsUpdatingInvoiceStatus(false);
+    }
+  }
+
+  function actionButtonTypes(invoice) {
+    if (invoice.status === 'DRAFT') {
+      return [
+        {
+          type: 'confirm',
+          label: 'Confirm',
+          icon: <CheckIcon />,
+          variant: 'default',
+          onClick: async () => handleUpdateInvoiceStatus(invoice.id, 'PENDING'),
+        },
+        {
+          type: 'void',
+          label: 'Void',
+          icon: <TrashIcon />,
+          variant: 'destructive',
+          onClick: async () => handleUpdateInvoiceStatus(invoice.id, 'VOID'),
+        },
+      ];
+    }
+
+    if (invoice.status === 'PENDING' && invoice._count?.payments === 0) {
+      return [
+        {
+          type: 'void',
+          label: 'Void',
+          icon: <TrashIcon />,
+          variant: 'destructive',
+          onClick: async () => handleUpdateInvoiceStatus(invoice.id, 'VOID'),
+        },
+      ];
+    }
+
+    return [];
+  }
 
   return (
     <DashboardLayout title="Customers" enableButton={false}>
@@ -308,11 +369,12 @@ export default function CustomersPage() {
                             <TableHead>Status</TableHead>
                             <TableHead>Issued At</TableHead>
                             <TableHead>Due At</TableHead>
+                            <TableHead className="w-32">Actions</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {invoices.map((invoice) => (
-                            <TableRow className="h-10" key={invoice.id}>
+                            <TableRow className="h-9" key={invoice.id}>
                               <TableCell>
                                 <CopyText text={invoice.id} />
                               </TableCell>
@@ -329,11 +391,55 @@ export default function CustomersPage() {
                               <TableCell>
                                 {new Date(invoice.due_at).toLocaleDateString()}
                               </TableCell>
+                              <TableCell>
+                                {(() => {
+                                  const buttons = actionButtonTypes(invoice);
+                                  return buttons.length > 0 ? (
+                                    isUpdatingInvoiceStatus ? (
+                                      <Button
+                                        className="w-full"
+                                        variant="outline"
+                                        disabled
+                                      >
+                                        <Spinner className="size-4" />
+                                        Updating...
+                                      </Button>
+                                    ) : (
+                                      <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                          <Button
+                                            className="w-full"
+                                            variant="outline"
+                                          >
+                                            Update
+                                          </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end">
+                                          <DropdownMenuGroup>
+                                            {buttons.map((button) => (
+                                              <DropdownMenuItem
+                                                key={button.type}
+                                                variant={button.variant}
+                                                onSelect={button.onClick}
+                                                disabled={
+                                                  isUpdatingInvoiceStatus
+                                                }
+                                              >
+                                                {button.icon}
+                                                {button.label}
+                                              </DropdownMenuItem>
+                                            ))}
+                                          </DropdownMenuGroup>
+                                        </DropdownMenuContent>
+                                      </DropdownMenu>
+                                    )
+                                  ) : null;
+                                })()}
+                              </TableCell>
                             </TableRow>
                           ))}
                         </TableBody>
                       </Table>
-                      <ScrollBar orientation="vertical" />
                       <ScrollBar orientation="horizontal" />
                     </ScrollArea>
                   )}
