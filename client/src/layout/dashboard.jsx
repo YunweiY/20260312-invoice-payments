@@ -13,7 +13,7 @@ export default function DashboardLayout({
   return (
     <SidebarProvider>
       <AppSidebar />
-      <main className="flex flex-1 flex-col">
+      <main className="flex h-screen min-h-0 flex-1 flex-col overflow-hidden">
         <PageHeader
           title={title}
           enableButton={enableButton}
@@ -21,7 +21,7 @@ export default function DashboardLayout({
           buttonText={buttonText}
           buttonOnClick={buttonOnClick}
         />
-        {children}
+        <section className="flex-1 min-h-0 overflow-hidden">{children}</section>
       </main>
     </SidebarProvider>
   );
