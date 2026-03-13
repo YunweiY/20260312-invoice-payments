@@ -51,12 +51,7 @@ export default function InvoicesPage() {
       filters.fromDate !== undefined ? filters.fromDate : fromDate;
     const nextToDate = filters.toDate !== undefined ? filters.toDate : toDate;
 
-    const data = await getAllInvoices(
-      null,
-      nextStatus,
-      nextFromDate,
-      nextToDate
-    );
+    const data = await getAllInvoices(nextStatus, nextFromDate, nextToDate);
     setInvoices(data);
   }
 
