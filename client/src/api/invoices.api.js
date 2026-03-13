@@ -1,15 +1,17 @@
 import apiClient from './client';
 import { toIso8601 } from '@/lib/utils';
 
-export const getAllInvoices = async (status, from, to) => {
+export const getAllInvoices = async (status, from, to, page, limit) => {
   const response = await apiClient.get('/invoices', {
     params: {
       status,
       from: toIso8601(from),
       to: toIso8601(to),
+      page,
+      limit,
     },
   });
-  return response.data.data;
+  return { invoices: response.data.data, meta: response.data.meta };
 };
 
 export const getInvoiceById = async (id) => {

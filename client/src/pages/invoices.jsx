@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   getAllInvoices,
   getInvoiceById,
@@ -42,6 +42,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { CheckIcon, TrashIcon } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAutoPageSize } from '@/hooks/useAutoPageSize';
+import { CompactPagination } from '@/components/common/compact-pagination';
 
 export default function InvoicesPage() {
   const [invoices, setInvoices] = useState([]);
@@ -62,6 +64,15 @@ export default function InvoicesPage() {
 
   const [isUpdatingInvoiceStatus, setIsUpdatingInvoiceStatus] = useState(false);
 
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(0);
+  const scrollAreaRef = useRef(null); // ref to the scroll area element
+  const limit = useAutoPageSize({
+    containerRef: scrollAreaRef,
+    rowHeight: 48, // h-12
+    initialLimit: 15,
+  });
+
   async function loadInvoices(filters = {}) {
     // Use undefined instead of ?? to check the filter values so we can pass null to reset filters
     const nextStatus = filters.status !== undefined ? filters.status : status;
@@ -69,8 +80,15 @@ export default function InvoicesPage() {
       filters.fromDate !== undefined ? filters.fromDate : fromDate;
     const nextToDate = filters.toDate !== undefined ? filters.toDate : toDate;
 
-    const data = await getAllInvoices(nextStatus, nextFromDate, nextToDate);
-    setInvoices(data);
+    const { invoices, meta } = await getAllInvoices(
+      nextStatus,
+      nextFromDate,
+      nextToDate,
+      page,
+      limit
+    );
+    setInvoices(invoices);
+    setTotalPages(meta.totalPages);
   }
 
   async function runLoad(filters = {}) {
@@ -102,7 +120,7 @@ export default function InvoicesPage() {
 
   useEffect(() => {
     runLoad();
-  }, []);
+  }, [page, limit]);
 
   function resetFilters() {
     setStatus(null);
@@ -238,97 +256,110 @@ export default function InvoicesPage() {
             </div>
           </div>
           {/* invoices table */}
-          <Card className="flex h-full min-h-0 flex-1 flex-col p-2">
-            <ScrollArea className="h-full w-full">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Invoice ID</TableHead>
-                    <TableHead>Customer</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Issued At</TableHead>
-                    <TableHead>Due At</TableHead>
-                    <TableHead className="w-32">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {invoices.map((invoice) => (
-                    <TableRow
-                      key={invoice.id}
-                      onClick={() => loadInvoiceById(invoice.id)}
-                    >
-                      <TableCell>
-                        <CopyText text={invoice.id} />
-                      </TableCell>
-                      <TableCell>{invoice.customer.name}</TableCell>
-                      <TableCell>
-                        {formatAmount(invoice.amount)} {invoice.currency}
-                      </TableCell>
-                      <TableCell>{statusTag(invoice.status)}</TableCell>
-                      <TableCell>
-                        {new Date(invoice.issued_at).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell>
-                        {new Date(invoice.due_at).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell
-                        // prevent the click event from bubbling up to the parent table row
-                        onClick={(e) => e.stopPropagation()}
-                        onPointerDown={(e) => e.stopPropagation()}
-                      >
-                        {/* action buttons */}
-                        {(() => {
-                          const buttons = actionButtonTypes(invoice);
-                          return buttons.length > 0 ? (
-                            isUpdatingInvoiceStatus ? (
-                              <Button
-                                className="w-full"
-                                variant="outline"
-                                disabled
-                              >
-                                <Spinner className="size-4" />
-                                Updating...
-                              </Button>
-                            ) : (
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button className="w-full" variant="outline">
-                                    Update
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuGroup>
-                                    {buttons.map((button) => (
-                                      <DropdownMenuItem
-                                        key={button.type}
-                                        variant={button.variant}
-                                        onSelect={(e) => {
-                                          e.stopPropagation();
-                                          button.onClick();
-                                        }}
-                                        onPointerDown={(e) =>
-                                          e.stopPropagation()
-                                        }
-                                        disabled={isUpdatingInvoiceStatus}
-                                      >
-                                        {button.icon}
-                                        {button.label}
-                                      </DropdownMenuItem>
-                                    ))}
-                                  </DropdownMenuGroup>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            )
-                          ) : null;
-                        })()}
-                      </TableCell>
+          <Card className="flex h-full min-h-0 flex-1 flex-col p-2 bg-">
+            <div ref={scrollAreaRef} className="min-h-0 flex-1">
+              <ScrollArea className="size-full">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Invoice ID</TableHead>
+                      <TableHead>Customer</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Issued At</TableHead>
+                      <TableHead>Due At</TableHead>
+                      <TableHead className="w-32">Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-              <ScrollBar orientation="horizontal" />
-            </ScrollArea>
+                  </TableHeader>
+                  <TableBody>
+                    {invoices.map((invoice) => (
+                      <TableRow
+                        className="h-12"
+                        key={invoice.id}
+                        onClick={() => loadInvoiceById(invoice.id)}
+                      >
+                        <TableCell>
+                          <CopyText text={invoice.id} />
+                        </TableCell>
+                        <TableCell>{invoice.customer.name}</TableCell>
+                        <TableCell>
+                          {formatAmount(invoice.amount)} {invoice.currency}
+                        </TableCell>
+                        <TableCell>{statusTag(invoice.status)}</TableCell>
+                        <TableCell>
+                          {new Date(invoice.issued_at).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell>
+                          {new Date(invoice.due_at).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell
+                          // prevent the click event from bubbling up to the parent table row
+                          onClick={(e) => e.stopPropagation()}
+                          onPointerDown={(e) => e.stopPropagation()}
+                        >
+                          {/* action buttons */}
+                          {(() => {
+                            const buttons = actionButtonTypes(invoice);
+                            return buttons.length > 0 ? (
+                              isUpdatingInvoiceStatus ? (
+                                <Button
+                                  className="w-full"
+                                  variant="outline"
+                                  disabled
+                                >
+                                  <Spinner className="size-4" />
+                                  Updating...
+                                </Button>
+                              ) : (
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button
+                                      className="w-full"
+                                      variant="outline"
+                                    >
+                                      Update
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuGroup>
+                                      {buttons.map((button) => (
+                                        <DropdownMenuItem
+                                          key={button.type}
+                                          variant={button.variant}
+                                          onSelect={(e) => {
+                                            e.stopPropagation();
+                                            button.onClick();
+                                          }}
+                                          onPointerDown={(e) =>
+                                            e.stopPropagation()
+                                          }
+                                          disabled={isUpdatingInvoiceStatus}
+                                        >
+                                          {button.icon}
+                                          {button.label}
+                                        </DropdownMenuItem>
+                                      ))}
+                                    </DropdownMenuGroup>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              )
+                            ) : null;
+                          })()}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+                <ScrollBar orientation="horizontal" />
+              </ScrollArea>
+            </div>
+            <div className="border-t p-2">
+              <CompactPagination
+                page={page}
+                totalPages={totalPages}
+                onPageChange={setPage}
+              />
+            </div>
           </Card>
         </div>
       )}
