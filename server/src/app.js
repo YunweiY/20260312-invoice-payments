@@ -7,6 +7,7 @@ import indexRoutes from './routes/index.js';
 import customerRoutes from './routes/customer.routes.js';
 import invoiceRoutes from './routes/invoice.routes.js';
 import paymentRoutes from './routes/payment.routes.js';
+import { swaggerUi, swaggerSpec } from './docs/swagger.js';
 
 import { errorHandler } from './middlewares/errorHandler.js';
 
@@ -21,6 +22,7 @@ app.use('/api', indexRoutes);
 app.use('/api/customers', customerRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.use(errorHandler);
 
