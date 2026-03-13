@@ -25,6 +25,7 @@ import {
 import { DatePicker } from '@/components/common/date-picker';
 import { Label } from '@/components/ui/label';
 import { SimpleSheet } from '@/components/common/simple-sheet';
+import { InvoiceForm } from '@/components/invoices/invoice-form';
 
 export default function InvoicesPage() {
   const [invoices, setInvoices] = useState([]);
@@ -39,6 +40,8 @@ export default function InvoicesPage() {
   const [isSheetLoading, setIsSheetLoading] = useState(true);
   const [sheetError, setSheetError] = useState(null);
   const [invoice, setInvoice] = useState(null);
+
+  const [isFormOpen, setIsFormOpen] = useState(false);
 
   async function loadInvoices(filters = {}) {
     // Use undefined instead of ?? to check the filter values so we can pass null to reset filters
@@ -144,7 +147,9 @@ export default function InvoicesPage() {
       enableButton={true}
       buttonText="New Invoice"
       buttonIcon={<PlusIcon className="h-4 w-4" />}
-      buttonOnClick={() => {}}
+      buttonOnClick={() => {
+        setIsFormOpen(true);
+      }}
     >
       {isLoading ? (
         <div className="flex h-full items-center justify-center gap-2">
@@ -175,40 +180,46 @@ export default function InvoicesPage() {
       ) : (
         <div className="flex flex-col gap-2 h-full min-h-0 p-4">
           {/* filters */}
-          <div className="flex flex-row gap-2">
+          <div className="flex flex-wrap items-end gap-2">
             {/* filter by status */}
-            <Label>Status: </Label>
-            <Select
-              value={status ?? undefined}
-              onValueChange={(value) => setStatus(value)}
-            >
-              <SelectTrigger className="min-w-36">
-                <SelectValue placeholder="Select a status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="DRAFT">Draft</SelectItem>
-                <SelectItem value="PENDING">Pending</SelectItem>
-                <SelectItem value="PAID">Paid</SelectItem>
-                <SelectItem value="VOID">Void</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex flex-row gap-2">
+              <Label>Status: </Label>
+              <Select
+                value={status ?? undefined}
+                onValueChange={(value) => setStatus(value)}
+              >
+                <SelectTrigger className="min-w-36">
+                  <SelectValue placeholder="Select a status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="DRAFT">Draft</SelectItem>
+                  <SelectItem value="PENDING">Pending</SelectItem>
+                  <SelectItem value="PAID">Paid</SelectItem>
+                  <SelectItem value="VOID">Void</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             {/* filter by issued_at date range */}
-            <Label>From: </Label>
-            <DatePicker
-              value={fromDate}
-              setValue={setFromDate}
-              maxDate={toDate}
-            />
-            <Label>To: </Label>
-            <DatePicker
-              value={toDate}
-              setValue={setToDate}
-              minDate={fromDate}
-            />
-            <Button onClick={() => runLoad()}>Filter</Button>
-            <Button onClick={resetFilters} variant="outline">
-              Reset
-            </Button>
+            <div className="flex flex-row gap-2">
+              <Label>From: </Label>
+              <DatePicker
+                value={fromDate}
+                setValue={setFromDate}
+                maxDate={toDate}
+              />
+              <Label>To: </Label>
+              <DatePicker
+                value={toDate}
+                setValue={setToDate}
+                minDate={fromDate}
+              />
+            </div>
+            <div className="flex flex-row gap-2">
+              <Button onClick={() => runLoad()}>Filter</Button>
+              <Button onClick={resetFilters} variant="outline">
+                Reset
+              </Button>
+            </div>
           </div>
           {/* invoices table */}
           <Card className="flex h-full min-h-0 flex-1 flex-col p-2">
@@ -359,6 +370,13 @@ export default function InvoicesPage() {
           )}
         </div>
       </SimpleSheet>
+      <InvoiceForm
+        open={isFormOpen}
+        setOpen={setIsFormOpen}
+        onSuccessSubmit={() => {
+          runLoad();
+        }}
+      />
     </DashboardLayout>
   );
 }
