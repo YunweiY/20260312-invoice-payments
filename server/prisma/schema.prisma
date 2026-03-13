@@ -25,6 +25,10 @@ model Invoices {
   payments Payments[]
 
   customer Customers @relation(fields: [customer_id], references: [id])
+
+  @@index([customer_id, issued_at(sort: Desc)]) 
+  @@index([status, issued_at(sort: Desc)]) 
+  @@index([issued_at(sort: Desc)]) 
 }
 
 model Payments {
@@ -34,6 +38,9 @@ model Payments {
   paid_at DateTime
 
   invoice Invoices @relation(fields: [invoice_id], references: [id])
+
+  @@index([invoice_id, paid_at(sort: Desc)])
+  @@index([paid_at(sort: Desc)])
 }
 
 enum InvoiceStatus {

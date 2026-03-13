@@ -178,6 +178,16 @@ The data model is centered around customers, invoices, and payments.
 - Monetary fields use decimal types to avoid floating-point precision issues.
 - Invoice settlement status is derived by business logic: invoices move to `PAID` when total payments reach the invoice amount.
 
+### Indexes for paginated list queries
+
+To support paginated list endpoints efficiently, the database includes additional indexes for common filter/sort patterns. These indexes also align with the default API sort orders documented in the API section.
+
+- `Invoices(customer_id, issued_at DESC)` for customer-scoped invoice lists.
+- `Invoices(status, issued_at DESC)` for status-filtered invoice lists.
+- `Invoices(issued_at DESC)` for global invoice list ordering.
+- `Payments(invoice_id, paid_at DESC)` for invoice payment history lookups.
+- `Payments(paid_at DESC)` for global payment list ordering.
+
 ## 5. API Overview
 
 ### Base URL
@@ -185,6 +195,12 @@ The data model is centered around customers, invoices, and payments.
 - Local base URL: `http://localhost:5000/api`
 
 ### Endpoints
+
+Default sorting order in list APIs:
+
+- Customers: `name ASC`
+- Invoices: `issued_at DESC`
+- Payments: `paid_at DESC`
 
 #### Health
 
