@@ -196,11 +196,10 @@ To support paginated list endpoints efficiently, the database includes additiona
 
 ### Endpoints
 
-Default sorting order in list APIs:
+List endpoint behavior:
 
-- Customers: `name ASC`
-- Invoices: `issued_at DESC`
-- Payments: `paid_at DESC`
+- Default sorting is applied consistently across list APIs: customers by `name ASC`, invoices by `issued_at DESC`, and payments by `paid_at DESC`.
+- Controller error handling is standardized with `asyncHandler`, which forwards both synchronous and asynchronous exceptions to the global `errorHandler`.
 
 #### Health
 
@@ -344,22 +343,10 @@ The current flow assumes invoice currency and payment currency are the same. Thi
 
 ## 8. Possible Improvements
 
-### 1) Code cleanup: validation and controller boilerplate
-
-Validation is currently spread across many `if` checks in controllers and services, and controller handlers still repeat `try/catch` boilerplate. A code-cleanup pass can introduce validation middleware/schema at route boundaries (for example, Zod/Joi/Yup) and an async wrapper utility for controllers, reducing duplication and making request-handling code easier to maintain.
-
-### 2) Align table naming conventions
+### 1) Align table naming conventions
 
 Current Prisma models/tables use plural names (`Customers`, `Invoices`, `Payments`). A future migration to singular names could better match common ORM conventions and improve readability.
 
-### 3) Add stronger type safety where it matters
-
-The JavaScript-first stack keeps development lightweight and fast, but transaction-heavy and money-sensitive domains benefit from stronger typing. Introducing TypeScript (or another strongly typed approach) can reduce runtime mistakes and improve refactoring safety.
-
-### 4) Split large pages into smaller feature components
-
-Some pages are currently component-heavy (for example, table pages). Splitting them into smaller feature components can improve maintainability and testability; where prop passing becomes noisy, lightweight shared state (context or co-located hooks) can be introduced selectively.
-
-### 5) Externalize currency metadata
+### 2) Externalize currency metadata
 
 Supported currencies are currently hardcoded in the frontend. A better approach is to maintain a currency reference table (or config endpoint) and load options dynamically. If cross-currency payments are introduced later, the same domain can be extended with an exchange-rate table (source, target, rate, effective time), payment fields for original and settled currency/amount, and a persisted FX-rate snapshot at payment time for auditability.
