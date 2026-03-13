@@ -12,15 +12,31 @@ import {
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { PlusIcon } from 'lucide-react';
+import { PlusIcon, AlertTriangleIcon } from 'lucide-react';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { Spinner } from '@/components/ui/spinner';
 
 export default function InvoicesPage() {
   const [invoices, setInvoices] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  async function loadInvoices() {
+    getAllInvoices()
+      .then((data) => {
+        setInvoices(data);
+        setError(null);
+      })
+      .catch((error) => {
+        setError(error);
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
+  }
+
   useEffect(() => {
-    getAllInvoices().then((data) => {
-      setInvoices(data);
-    });
+    loadInvoices();
   }, []);
 
   const showActionButtons = (invoice) => {
@@ -71,49 +87,68 @@ export default function InvoicesPage() {
       buttonIcon={<PlusIcon className="h-4 w-4" />}
       buttonOnClick={() => {}}
     >
-      <div className="flex h-full min-h-0 p-4">
-        <Card className="flex h-full min-h-0 flex-1 flex-col p-2">
-          <ScrollArea className="h-full w-full">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Invoice ID</TableHead>
-                  <TableHead>Customer</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Issued At</TableHead>
-                  <TableHead>Due At</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {invoices.map((invoice) => (
-                  <TableRow key={invoice.id}>
-                    <TableCell>{invoice.id}</TableCell>
-                    <TableCell>{invoice.customer.name}</TableCell>
-                    <TableCell>
-                      {invoice.amount.toLocaleString()} {invoice.currency}
-                    </TableCell>
-                    <TableCell>{statusTag(invoice.status)}</TableCell>
-                    <TableCell>
-                      {new Date(invoice.issued_at).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell>
-                      {new Date(invoice.due_at).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell>
-                      {showActionButtons(invoice) && (
-                        <Button variant="outline">Confirm</Button>
-                      )}
-                    </TableCell>
+      {isLoading ? (
+        <div className="flex h-full items-center justify-center gap-2">
+          <Spinner className="size-10" />
+          <p className="text-gray-600 text-center text-lg font-medium">
+            Loading invoices...
+          </p>
+        </div>
+      ) : error ? (
+        <div className="flex h-full items-center justify-center flex-col gap-2">
+          <AlertTriangleIcon className="size-10 text-red-600" />
+          <p className="text-red-600 text-center text-lg font-medium">
+            {error.message}
+          </p>
+          <Button variant="outline" onClick={loadInvoices}>
+            Try Again
+          </Button>
+        </div>
+      ) : (
+        <div className="flex h-full min-h-0 p-4">
+          <Card className="flex h-full min-h-0 flex-1 flex-col p-2">
+            <ScrollArea className="h-full w-full">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Invoice ID</TableHead>
+                    <TableHead>Customer</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Issued At</TableHead>
+                    <TableHead>Due At</TableHead>
+                    <TableHead>Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-            <ScrollBar orientation="horizontal" />
-          </ScrollArea>
-        </Card>
-      </div>
+                </TableHeader>
+                <TableBody>
+                  {invoices.map((invoice) => (
+                    <TableRow key={invoice.id}>
+                      <TableCell>{invoice.id}</TableCell>
+                      <TableCell>{invoice.customer.name}</TableCell>
+                      <TableCell>
+                        {invoice.amount.toLocaleString()} {invoice.currency}
+                      </TableCell>
+                      <TableCell>{statusTag(invoice.status)}</TableCell>
+                      <TableCell>
+                        {new Date(invoice.issued_at).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell>
+                        {new Date(invoice.due_at).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell>
+                        {showActionButtons(invoice) && (
+                          <Button variant="outline">Confirm</Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              <ScrollBar orientation="horizontal" />
+            </ScrollArea>
+          </Card>
+        </div>
+      )}
     </DashboardLayout>
   );
 }
