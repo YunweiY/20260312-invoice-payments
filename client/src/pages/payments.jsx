@@ -16,6 +16,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { CopyText } from '@/components/common/copy-text';
+import { formatAmount } from '@/lib/utils';
 
 export default function PaymentsPage() {
   const [payments, setPayments] = useState([]);
@@ -88,7 +89,7 @@ export default function PaymentsPage() {
                         <CopyText text={payment.invoice_id} />
                       </TableCell>
                       <TableCell>
-                        {Number(payment.amount).toLocaleString()}{' '}
+                        {formatAmount(payment.amount)}{' '}
                         {payment.invoice.currency}
                       </TableCell>
                       <TableCell>

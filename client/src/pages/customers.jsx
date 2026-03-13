@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/select';
 import { DatePicker } from '@/components/common/date-picker';
 import { CopyText } from '@/components/common/copy-text';
+import { formatAmount } from '@/lib/utils';
 
 export default function CustomersPage() {
   const [customers, setCustomers] = useState([]);
@@ -270,8 +271,7 @@ export default function CustomersPage() {
                         <CopyText text={invoice.id} />
                       </TableCell>
                       <TableCell>
-                        {Number(invoice.amount).toLocaleString()}{' '}
-                        {invoice.currency}
+                        {formatAmount(invoice.amount)} {invoice.currency}
                       </TableCell>
                       <TableCell>{statusTag(invoice.status)}</TableCell>
                       <TableCell>

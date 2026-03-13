@@ -27,6 +27,7 @@ import {
   HoverCardTrigger,
 } from '@/components/ui/hover-card';
 import { toast } from 'sonner';
+import { formatAmount } from '@/lib/utils';
 
 export function PaymentForm({ invoice, open, setOpen, onSuccessSubmit }) {
   const [amount, setAmount] = useState(0);
@@ -131,8 +132,7 @@ export function PaymentForm({ invoice, open, setOpen, onSuccessSubmit }) {
                   }}
                 />
                 <p className="text-sm text-gray-500">
-                  Outstanding Amount:{' '}
-                  {Number(invoice?.remaining_amount).toLocaleString()}{' '}
+                  Outstanding Amount: {formatAmount(invoice?.remaining_amount)}{' '}
                   {invoice?.currency}
                 </p>
               </Field>

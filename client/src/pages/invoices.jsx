@@ -28,6 +28,7 @@ import { SimpleSheet } from '@/components/common/simple-sheet';
 import { InvoiceForm } from '@/components/invoices/invoice-form';
 import { CopyText } from '@/components/common/copy-text';
 import { PaymentForm } from '@/components/invoices/payment-form';
+import { formatAmount } from '@/lib/utils';
 
 export default function InvoicesPage() {
   const [invoices, setInvoices] = useState([]);
@@ -206,8 +207,7 @@ export default function InvoicesPage() {
                       </TableCell>
                       <TableCell>{invoice.customer.name}</TableCell>
                       <TableCell>
-                        {Number(invoice.amount).toLocaleString()}{' '}
-                        {invoice.currency}
+                        {formatAmount(invoice.amount)} {invoice.currency}
                       </TableCell>
                       <TableCell>{statusTag(invoice.status)}</TableCell>
                       <TableCell>
@@ -283,14 +283,13 @@ export default function InvoicesPage() {
               <div className="flex flex-row gap-2">
                 <p className="font-medium">Amount: </p>
                 <p>
-                  {Number(invoice.amount).toLocaleString()} {invoice.currency}
+                  {formatAmount(invoice.amount)} {invoice.currency}
                 </p>
               </div>
               <div className="flex flex-row gap-2">
                 <p className="font-medium">Outstanding Amount: </p>
                 <p>
-                  {Number(invoice.remaining_amount).toLocaleString()}{' '}
-                  {invoice.currency}
+                  {formatAmount(invoice.remaining_amount)} {invoice.currency}
                 </p>
               </div>
               <div className="flex flex-row gap-2">
@@ -330,8 +329,7 @@ export default function InvoicesPage() {
                         <TableRow key={payment.id}>
                           <TableCell>{payment.id}</TableCell>
                           <TableCell>
-                            {Number(payment.amount).toLocaleString()}{' '}
-                            {invoice.currency}
+                            {formatAmount(payment.amount)} {invoice.currency}
                           </TableCell>
                           <TableCell>
                             {new Date(payment.paid_at).toLocaleDateString()}
