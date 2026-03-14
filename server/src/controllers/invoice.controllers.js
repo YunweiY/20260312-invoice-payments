@@ -6,7 +6,7 @@ import { isValidAmountString } from '../utils/validateAmountString.js';
 import parsePagination from '../utils/parsePagination.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
-const getInvoicesController = asyncHandler(async (req, res, next) => {
+const getInvoicesController = asyncHandler(async (req, res) => {
   const { status, from, to } = req.query;
   const { page, limit } = parsePagination(req.query);
 
@@ -45,7 +45,7 @@ const getInvoicesController = asyncHandler(async (req, res, next) => {
   });
 });
 
-const getInvoiceByIdController = asyncHandler(async (req, res, next) => {
+const getInvoiceByIdController = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
   // validate invoice id
@@ -64,7 +64,7 @@ const getInvoiceByIdController = asyncHandler(async (req, res, next) => {
   });
 });
 
-const createInvoiceController = asyncHandler(async (req, res, next) => {
+const createInvoiceController = asyncHandler(async (req, res) => {
   // issued_at is set to the current date and time by default
   const { customer_id, amount, currency, due_at } = req.body ?? {};
 
@@ -124,7 +124,7 @@ const createInvoiceController = asyncHandler(async (req, res, next) => {
   });
 });
 
-const payInvoiceController = asyncHandler(async (req, res, next) => {
+const payInvoiceController = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const { amount } = req.body ?? {};
 
@@ -155,7 +155,7 @@ const payInvoiceController = asyncHandler(async (req, res, next) => {
   });
 });
 
-const updateInvoiceStatusController = asyncHandler(async (req, res, next) => {
+const updateInvoiceStatusController = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const { status } = req.body ?? {};
 

@@ -3,6 +3,8 @@ import AppError from '../errors/AppError.js';
 
 // global error handler
 export function errorHandler(err, req, res, next) {
+  void next;
+
   if (err instanceof AppError) {
     return res.status(err.statusCode).json({
       status: 'error',

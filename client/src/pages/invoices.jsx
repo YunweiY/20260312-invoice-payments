@@ -120,9 +120,11 @@ export default function InvoicesPage() {
     }
   }
 
+  // Intentionally only reload on pagination changes
+  // status/date filters apply on Filter click.
   useEffect(() => {
     runLoad();
-  }, [page, limit]);
+  }, [page, limit]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     setPaymentPage(1);

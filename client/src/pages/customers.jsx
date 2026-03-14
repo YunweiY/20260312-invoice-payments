@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { AlertTriangleIcon } from 'lucide-react';
 import DashboardLayout from '@/layout/dashboard';
 import { getAllCustomers } from '@/api/customers.api';
@@ -122,7 +122,9 @@ export default function CustomersPage() {
     }
   }
 
-  async function loadCustomers() {
+  // stabilize the function as useEffect dependency
+  // useCallback to prevent unnecessary re-renders
+  const loadCustomers = useCallback(async () => {
     getAllCustomers(page, limit)
       .then(({ customers, meta }) => {
         setCustomers(customers);
@@ -135,11 +137,11 @@ export default function CustomersPage() {
       .finally(() => {
         setIsLoading(false);
       });
-  }
+  }, [page, limit]);
 
   useEffect(() => {
     loadCustomers();
-  }, [page, limit]);
+  }, [loadCustomers]);
 
   async function handleUpdateInvoiceStatus(id, targetStatus) {
     if (!selectedCustomer?.id) return;

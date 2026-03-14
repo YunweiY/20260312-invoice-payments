@@ -5,7 +5,7 @@ import { validateInvoiceStatus } from '../utils/validateInvoiceStatus.js';
 import parsePagination from '../utils/parsePagination.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
-const getCustomersController = asyncHandler(async (req, res, next) => {
+const getCustomersController = asyncHandler(async (req, res) => {
   const { page, limit } = parsePagination(req.query);
   const { customers, total, totalPages } =
     await customerService.getCustomersService(page, limit);
@@ -21,7 +21,7 @@ const getCustomersController = asyncHandler(async (req, res, next) => {
   });
 });
 
-const getCustomerInvoicesController = asyncHandler(async (req, res, next) => {
+const getCustomerInvoicesController = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const { status, from, to } = req.query;
   const { page, limit } = parsePagination(req.query);

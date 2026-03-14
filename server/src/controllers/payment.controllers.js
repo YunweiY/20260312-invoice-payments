@@ -2,7 +2,7 @@ import * as paymentService from '../services/payment.services.js';
 import parsePagination from '../utils/parsePagination.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
-const getPaymentsController = asyncHandler(async (req, res, next) => {
+const getPaymentsController = asyncHandler(async (req, res) => {
   const { page, limit } = parsePagination(req.query);
   const { payments, total, totalPages } =
     await paymentService.getPaymentsService(page, limit);

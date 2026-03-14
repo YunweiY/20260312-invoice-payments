@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { AlertTriangleIcon } from 'lucide-react';
 
 import DashboardLayout from '@/layout/dashboard';
@@ -33,7 +33,8 @@ export default function PaymentsPage() {
     initialLimit: 15,
   });
 
-  async function loadPayments() {
+  // useCallback to prevent unnecessary re-renders
+  const loadPayments = useCallback(async () => {
     getAllPayments(page, limit)
       .then(({ payments, meta }) => {
         setPayments(payments);
@@ -46,11 +47,11 @@ export default function PaymentsPage() {
       .finally(() => {
         setIsLoading(false);
       });
-  }
+  }, [page, limit]);
 
   useEffect(() => {
     loadPayments();
-  }, [page, limit]);
+  }, [loadPayments]);
 
   return (
     <DashboardLayout title="Payments" enableButton={false}>
