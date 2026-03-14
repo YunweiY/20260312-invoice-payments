@@ -148,7 +148,7 @@ export default function InvoicesPage() {
     }
   }
 
-  const PAYMENT_PAGE_SIZE = 10;
+  const PAYMENT_PAGE_SIZE = 5;
   const paymentTotalPages = Math.ceil(
     (invoice?.payments?.length || 0) / PAYMENT_PAGE_SIZE
   );
@@ -383,6 +383,7 @@ export default function InvoicesPage() {
                   </Button>
                 </div>
                 {/* payments table */}
+                {/* dynamically adjust the number of rows based on container height */}
                 <Card className="flex min-h-0 flex-col p-2">
                   <div className="min-h-0">
                     <ScrollArea className="size-full">

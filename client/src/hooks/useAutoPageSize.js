@@ -11,9 +11,18 @@ export function useAutoPageSize({
   const [limit, setLimit] = useState(initialLimit);
 
   useEffect(() => {
+    let animationFrameId = null;
+    let retryTimeoutId = null;
+
     const updateLimitByHeight = () => {
       const containerElement = containerRef.current;
-      if (!containerElement) return;
+      if (!containerElement) {
+        // Retry once the table container is mounted (common after loading states).
+        retryTimeoutId = window.setTimeout(() => {
+          animationFrameId = window.requestAnimationFrame(updateLimitByHeight);
+        }, 50);
+        return;
+      }
 
       // get the viewport and header elements from the container
       const viewportElement = containerElement.querySelector(viewportSelector);
@@ -29,7 +38,30 @@ export function useAutoPageSize({
       setLimit((prev) => (prev === nextLimit ? prev : nextLimit));
     };
 
+    // use a resize observer to update the limit when the container is resized
+    // or the limit will only be set once when the component is mounted
+    const resizeObserver = new ResizeObserver(() => {
+      if (animationFrameId) {
+        window.cancelAnimationFrame(animationFrameId);
+      }
+      animationFrameId = window.requestAnimationFrame(updateLimitByHeight);
+    });
+
+    resizeObserver.observe(document.documentElement);
+    window.addEventListener('resize', updateLimitByHeight);
+
     updateLimitByHeight();
+
+    return () => {
+      if (animationFrameId) {
+        window.cancelAnimationFrame(animationFrameId);
+      }
+      if (retryTimeoutId) {
+        window.clearTimeout(retryTimeoutId);
+      }
+      resizeObserver.disconnect();
+      window.removeEventListener('resize', updateLimitByHeight);
+    };
   }, [containerRef, rowHeight, minRows, viewportSelector, headerSelector]);
 
   return limit;

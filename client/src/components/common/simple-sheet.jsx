@@ -5,6 +5,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 export function SimpleSheet({
   maxWidth = '1200px',
@@ -25,7 +26,9 @@ export function SimpleSheet({
           <SheetTitle>{title}</SheetTitle>
           <SheetDescription>{description}</SheetDescription>
         </SheetHeader>
-        {children}
+        <ScrollArea className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          {children}
+        </ScrollArea>
       </SheetContent>
     </Sheet>
   );

@@ -41,6 +41,7 @@ import { getInvoiceActionButtonTypes } from '@/components/invoices/invoice-actio
 import { toast } from 'sonner';
 
 export default function CustomersPage() {
+  const SHEET_PAGE_SIZE = 5;
   const [customers, setCustomers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -66,12 +67,6 @@ export default function CustomersPage() {
 
   const [sheetPage, setSheetPage] = useState(1);
   const [sheetTotalPages, setSheetTotalPages] = useState(0);
-  const sheetScrollAreaRef = useRef(null);
-  const sheetLimit = useAutoPageSize({
-    containerRef: sheetScrollAreaRef,
-    rowHeight: 48, // h-12
-    initialLimit: 10,
-  });
 
   async function loadInvoices(filters = {}) {
     const nextStatus = filters.status !== undefined ? filters.status : status;
@@ -87,7 +82,7 @@ export default function CustomersPage() {
         nextFromDate,
         nextToDate,
         sheetPage,
-        sheetLimit
+        SHEET_PAGE_SIZE
       );
       setInvoices(invoices);
       setSheetTotalPages(meta.totalPages);
@@ -116,7 +111,7 @@ export default function CustomersPage() {
         fromDate,
         toDate,
         pageOverride,
-        sheetLimit
+        SHEET_PAGE_SIZE
       );
       setInvoices(invoices);
       setSheetTotalPages(meta.totalPages);
@@ -328,12 +323,14 @@ export default function CustomersPage() {
                 </div>
               </div>
               {/* Invoice table */}
-              <Card className="flex min-h-0 flex-col p-2">
-                <div ref={sheetScrollAreaRef} className="min-h-0">
+              {/* TODO: dynamically adjust the number of rows based on container height */}
+              <Card className="flex min-h-0 flex-1 flex-col p-2">
+                <div className="min-h-0 flex-1">
                   <ScrollArea className="size-full">
                     <InvoiceTable
                       invoices={invoices}
                       showActions
+                      tableClassName="min-w-max"
                       renderActions={(invoice) => {
                         const buttons = getInvoiceActionButtonTypes(
                           invoice,
@@ -384,16 +381,18 @@ export default function CustomersPage() {
                     <ScrollBar orientation="horizontal" />
                   </ScrollArea>
                 </div>
-                <div className="border-t p-2">
-                  <CompactPagination
-                    page={sheetPage}
-                    totalPages={sheetTotalPages}
-                    onPageChange={(nextPage) => {
-                      setSheetPage(nextPage);
-                      loadInvoicesByCustomerId(selectedCustomer.id, nextPage);
-                    }}
-                  />
-                </div>
+                {sheetTotalPages > 1 && (
+                  <div className="border-t p-2">
+                    <CompactPagination
+                      page={sheetPage}
+                      totalPages={sheetTotalPages}
+                      onPageChange={(nextPage) => {
+                        setSheetPage(nextPage);
+                        loadInvoicesByCustomerId(selectedCustomer.id, nextPage);
+                      }}
+                    />
+                  </div>
+                )}
               </Card>
             </div>
           </div>
